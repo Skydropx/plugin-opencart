@@ -1,0 +1,247 @@
+{{ header }}{{ column_left }}
+<div id="content">
+  <div class="page-header">
+    <div class="container-fluid">
+      <div class="float-end">
+        <button type="submit" form="form-module" data-bs-toggle="tooltip" title="{{ button_save }}" class="btn btn-primary"><i class="fa-solid fa-save"></i></button>
+        <a href="{{ back }}" data-bs-toggle="tooltip" title="{{ button_back }}" class="btn btn-light"><i class="fa-solid fa-reply"></i></a></div>
+      <h1>{{ heading_title }}</h1>
+      <ol class="breadcrumb">
+        {% for breadcrumb in breadcrumbs %}
+          <li class="breadcrumb-item"><a href="{{ breadcrumb.href }}">{{ breadcrumb.text }}</a></li>
+        {% endfor %}
+      </ol>
+    </div>
+  </div>
+  <div class="container-fluid">
+    <div class="card">
+      <div class="card-header"><i class="fa-solid fa-pencil"></i> {{ text_edit }}</div>
+      <div class="card-body">
+        <form id="form-module" action="{{ save }}" method="post" data-oc-toggle="ajax">
+          <fieldset>
+            <legend>{{ text_connection }}</legend>
+            <div class="row mb-3">
+              <label class="col-sm-2 col-form-label">{{ entry_status }}</label>
+              <div class="col-sm-10">
+                <div class="form-check form-switch form-switch-lg">
+                  <input type="hidden" name="module_skydropx_status" value="0"/>
+                  <input type="checkbox" name="module_skydropx_status" value="1" id="input-status" class="form-check-input"{% if module_skydropx_status %} checked{% endif %}/>
+                </div>
+              </div>
+            </div>
+            <div class="row mb-3">
+              <label for="input-api-key" class="col-sm-2 col-form-label">{{ entry_api_key }}</label>
+              <div class="col-sm-10">
+                <div class="input-group">
+                  <input type="text" value="{{ api_key|e }}" id="input-api-key" class="form-control font-monospace" readonly/>
+                  <button type="button" id="button-copy" class="btn btn-light"><i class="fa-solid fa-copy"></i> {{ button_copy }}</button>
+                  <button type="button" id="button-regenerate" class="btn btn-warning"><i class="fa-solid fa-rotate"></i> {{ button_regenerate }}</button>
+                </div>
+                <div class="form-text">{{ text_api_key_help }}</div>
+              </div>
+            </div>
+            <div class="row mb-3">
+              <label for="input-api-base-url" class="col-sm-2 col-form-label">{{ entry_api_base_url }}</label>
+              <div class="col-sm-10">
+                <input type="text" value="{{ api_base_url|e }}" id="input-api-base-url" class="form-control" readonly/>
+              </div>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>{{ text_origin }}</legend>
+            <p class="form-text">{{ text_origin_help }}</p>
+            {% for field in ['name', 'owner', 'email', 'telephone', 'address', 'address_2', 'city', 'postcode'] %}
+              <div class="row mb-3">
+                <label for="input-origin-{{ field }}" class="col-sm-2 col-form-label">{{ attribute(_context, 'entry_origin_' ~ field) }}</label>
+                <div class="col-sm-10">
+                  <input type="text" name="origin_{{ field }}" value="{{ attribute(_context, 'origin_' ~ field) }}" id="input-origin-{{ field }}" class="form-control"/>
+                  <div id="error-origin-{{ field }}" class="invalid-feedback"></div>
+                </div>
+              </div>
+            {% endfor %}
+            <div class="row mb-3">
+              <label for="input-origin-country" class="col-sm-2 col-form-label">{{ entry_origin_country }}</label>
+              <div class="col-sm-10">
+                <select name="origin_country_id" id="input-origin-country" class="form-select">
+                  <option value="0">{{ text_select }}</option>
+                  {% for country in countries %}
+                    <option value="{{ country.country_id }}"{% if country.country_id == origin_country_id %} selected{% endif %}>{{ country.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            <div class="row mb-3">
+              <label for="input-origin-zone" class="col-sm-2 col-form-label">{{ entry_origin_zone }}</label>
+              <div class="col-sm-10">
+                <select name="origin_zone_id" id="input-origin-zone" class="form-select">
+                  <option value="0">{{ text_select }}</option>
+                  {% for zone in zones %}
+                    <option value="{{ zone.zone_id }}"{% if zone.zone_id == origin_zone_id %} selected{% endif %}>{{ zone.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>{{ text_statuses }}</legend>
+            <div class="row mb-3">
+              <label for="input-shipped-status-id" class="col-sm-2 col-form-label">{{ entry_shipped_status }}</label>
+              <div class="col-sm-10">
+                <select name="shipped_status_id" id="input-shipped-status-id" class="form-select">
+                  {% for order_status in order_statuses %}
+                    <option value="{{ order_status.order_status_id }}"{% if order_status.order_status_id == shipped_status_id %} selected{% endif %}>{{ order_status.name }}</option>
+                  {% endfor %}
+                </select>
+                <div class="form-text">{{ help_shipped_status }}</div>
+                <div id="error-shipped-status-id" class="invalid-feedback"></div>
+              </div>
+            </div>
+            <div class="row mb-3">
+              <label for="input-delivered-status-id" class="col-sm-2 col-form-label">{{ entry_delivered_status }}</label>
+              <div class="col-sm-10">
+                <select name="delivered_status_id" id="input-delivered-status-id" class="form-select">
+                  {% for order_status in order_statuses %}
+                    <option value="{{ order_status.order_status_id }}"{% if order_status.order_status_id == delivered_status_id %} selected{% endif %}>{{ order_status.name }}</option>
+                  {% endfor %}
+                </select>
+                <div class="form-text">{{ help_delivered_status }}</div>
+                <div id="error-delivered-status-id" class="invalid-feedback"></div>
+              </div>
+            </div>
+            <div class="row mb-3">
+              <label class="col-sm-2 col-form-label">{{ entry_cancelled_statuses }}</label>
+              <div class="col-sm-10">
+                <input type="hidden" name="cancelled_status_ids[]" value="0"/>
+                <div class="form-control p-0" style="height: 150px; overflow: auto;">
+                  <table class="table table-sm m-0">
+                    <tbody>
+                      {% for order_status in order_statuses %}
+                        <tr>
+                          <td>
+                            <div class="form-check">
+                              <input type="checkbox" name="cancelled_status_ids[]" value="{{ order_status.order_status_id }}" id="input-cancelled-{{ order_status.order_status_id }}" class="form-check-input"{% if order_status.order_status_id in cancelled_status_ids %} checked{% endif %}/>
+                              <label for="input-cancelled-{{ order_status.order_status_id }}" class="form-check-label">{{ order_status.name }}</label>
+                            </div>
+                          </td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+                <div class="form-text">{{ help_cancelled_statuses }}</div>
+              </div>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>{{ text_skydropx }}</legend>
+            <div class="row mb-3">
+              <label class="col-sm-2 col-form-label">{{ entry_quotation_status }}</label>
+              <div class="col-sm-10">
+                <span class="badge {% if quotation_status %}bg-success{% else %}bg-secondary{% endif %} mt-2">{% if quotation_status %}{{ text_enabled }}{% else %}{{ text_disabled }}{% endif %}</span>
+              </div>
+            </div>
+            <div class="row mb-3">
+              <label for="input-quotation-url" class="col-sm-2 col-form-label">{{ entry_quotation_base_url }}</label>
+              <div class="col-sm-10">
+                <input type="text" value="{{ quotation_base_url|e }}" id="input-quotation-url" class="form-control" readonly/>
+              </div>
+            </div>
+            <div class="row mb-3">
+              <label class="col-sm-2 col-form-label">{{ entry_webhooks_status }}</label>
+              <div class="col-sm-10">
+                <span class="badge {% if webhooks_status %}bg-success{% else %}bg-secondary{% endif %} mt-2">{% if webhooks_status %}{{ text_enabled }}{% else %}{{ text_disabled }}{% endif %}</span>
+              </div>
+            </div>
+            <div class="row mb-3">
+              <label for="input-webhook-url" class="col-sm-2 col-form-label">{{ entry_webhook_url }}</label>
+              <div class="col-sm-10">
+                <input type="text" value="{{ webhook_url|e }}" id="input-webhook-url" class="form-control" readonly/>
+              </div>
+            </div>
+            <div class="row mb-3">
+              <label for="input-webhook-update-url" class="col-sm-2 col-form-label">{{ entry_webhook_update_url }}</label>
+              <div class="col-sm-10">
+                <input type="text" value="{{ webhook_update_url|e }}" id="input-webhook-update-url" class="form-control" readonly/>
+              </div>
+            </div>
+          </fieldset>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+<script type="text/javascript"><!--
+$('#input-origin-country').on('change', function() {
+    var element = this;
+
+    $.ajax({
+        url: '{{ zone_url }}&country_id=' + encodeURIComponent(this.value),
+        dataType: 'json',
+        beforeSend: function() {
+            $(element).prop('disabled', true);
+            $('#input-origin-zone').prop('disabled', true);
+        },
+        complete: function() {
+            $(element).prop('disabled', false);
+            $('#input-origin-zone').prop('disabled', false);
+        },
+        success: function(json) {
+            var html = '<option value="0">{{ text_select|escape('js') }}</option>';
+
+            if (json['zone'] && json['zone'] != '') {
+                for (var i = 0; i < json['zone'].length; i++) {
+                    html += '<option value="' + json['zone'][i]['zone_id'] + '">' + json['zone'][i]['name'] + '</option>';
+                }
+            }
+
+            $('#input-origin-zone').html(html);
+        }
+    });
+});
+
+$('#button-copy').on('click', function() {
+    var input = document.getElementById('input-api-key');
+
+    input.select();
+
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(input.value);
+    } else {
+        document.execCommand('copy');
+    }
+});
+
+$('#button-regenerate').on('click', function() {
+    if (!confirm('{{ text_confirm_regenerate|escape('js') }}')) {
+        return;
+    }
+
+    var button = this;
+
+    $.ajax({
+        url: '{{ regenerate }}',
+        type: 'post',
+        dataType: 'json',
+        beforeSend: function() {
+            $(button).button('loading');
+        },
+        complete: function() {
+            $(button).button('reset');
+        },
+        success: function(json) {
+            $('.alert-dismissible').remove();
+
+            if (json['error']) {
+                $('#alert').prepend('<div class="alert alert-danger alert-dismissible"><i class="fa-solid fa-circle-exclamation"></i> ' + json['error'] + ' <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>');
+            }
+
+            if (json['success']) {
+                $('#input-api-key').val(json['api_key']);
+
+                $('#alert').prepend('<div class="alert alert-success alert-dismissible"><i class="fa-solid fa-circle-check"></i> ' + json['success'] + ' <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>');
+            }
+        }
+    });
+});
+//--></script>
+{{ footer }}
