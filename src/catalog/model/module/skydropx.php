@@ -185,7 +185,12 @@ class Skydropx extends \Opencart\System\Engine\Model {
 		}
 
 		if ($zone_id) {
-			$query = $this->db->query("SELECT `name`, `code` FROM `" . DB_PREFIX . "zone` WHERE `zone_id` = '" . (int)$zone_id . "'");
+			if (version_compare(VERSION, '4.1.0.0', '>=')) {
+				// 4.1 moved zone names to oc_zone_description.
+				$query = $this->db->query("SELECT `zd`.`name`, `z`.`code` FROM `" . DB_PREFIX . "zone` `z` LEFT JOIN `" . DB_PREFIX . "zone_description` `zd` ON (`zd`.`zone_id` = `z`.`zone_id`) WHERE `z`.`zone_id` = '" . (int)$zone_id . "' ORDER BY (`zd`.`language_id` = '" . (int)$this->config->get('config_language_id') . "') DESC LIMIT 1");
+			} else {
+				$query = $this->db->query("SELECT `name`, `code` FROM `" . DB_PREFIX . "zone` WHERE `zone_id` = '" . (int)$zone_id . "'");
+			}
 
 			$zone_name = $this->text($query->row['name'] ?? '');
 			$zone_code = (string)($query->row['code'] ?? '');
