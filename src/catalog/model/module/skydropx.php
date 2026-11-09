@@ -267,9 +267,8 @@ class Skydropx extends \Opencart\System\Engine\Model {
 			$result['body'] = (string)$response;
 		}
 
+		// No curl_close(): a no-op since PHP 8.0 (deprecated in 8.5); the handle is freed with $curl.
 		$result['status'] = (int)curl_getinfo($curl, CURLINFO_HTTP_CODE);
-
-		curl_close($curl);
 
 		return $result;
 	}
