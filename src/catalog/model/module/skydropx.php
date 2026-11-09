@@ -385,7 +385,7 @@ class Skydropx extends \Opencart\System\Engine\Model {
 	// ---------------------------------------------------------------------
 
 	/**
-	 * @param array{store_id:int, page:int, limit:int, payment_status:string[], date_from:string} $filter
+	 * @param array{store_id:int, page:int, limit:int, payment_status:string[], date_from:string} $filter payment_status: paid and/or pending
 	 */
 	public function getOrders(array $filter): array {
 		$where = $this->baseOrderWhere((int)$filter['store_id']);
@@ -401,8 +401,6 @@ class Skydropx extends \Opencart\System\Engine\Model {
 			foreach ($filter['payment_status'] as $payment_status) {
 				if ($payment_status == 'paid') {
 					$or[] = "`o`.`order_status_id` IN (" . $paid . ")";
-				} elseif ($payment_status == 'cancelled') {
-					$or[] = "(`o`.`order_status_id` IN (" . $cancelled . ") AND `o`.`order_status_id` NOT IN (" . $paid . "))";
 				} elseif ($payment_status == 'pending') {
 					$or[] = "(`o`.`order_status_id` NOT IN (" . $paid . ") AND `o`.`order_status_id` NOT IN (" . $cancelled . "))";
 				}

@@ -4,7 +4,7 @@ namespace Opencart\Catalog\Controller\Extension\Skydropx\Api;
  * Class Orders
  *
  * GET index.php?route=extension/skydropx/api/orders&page=1&limit=50&payment_status=paid,pending&date_from=2026-11-01
- * Manual sync, page-number pagination.
+ * Manual sync, page-number pagination. Cancelled orders are never listed.
  *
  * @package Opencart\Catalog\Controller\Extension\Skydropx\Api
  */
@@ -40,14 +40,19 @@ class Orders extends \Opencart\System\Engine\Controller {
 			foreach (explode(',', (string)$get['payment_status']) as $value) {
 				$value = strtolower(trim($value));
 
-				if (!in_array($value, ['paid', 'pending', 'cancelled'], true)) {
-					$skydropx->error(422, 'VALIDATION_ERROR', 'payment_status accepts a comma list of paid, pending, cancelled.');
+				if (!in_array($value, ['paid', 'pending'], true)) {
+					$skydropx->error(422, 'VALIDATION_ERROR', 'payment_status accepts a comma list of paid, pending.');
 
 					return;
 				}
 
 				$payment_status[] = $value;
 			}
+		}
+
+		// Empty or absent = paid,pending. Cancelled orders are never listed.
+		if (!$payment_status) {
+			$payment_status = ['paid', 'pending'];
 		}
 
 		if (isset($get['date_from']) && trim((string)$get['date_from']) !== '') {

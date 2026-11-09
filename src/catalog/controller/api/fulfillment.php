@@ -7,7 +7,8 @@ namespace Opencart\Catalog\Controller\Extension\Skydropx\Api;
  * Body: {"order_id":42,"tracking_number":"123","carrier":"DHL","tracking_url":"https://...",
  *        "items":[{"order_product_id":7,"quantity":2}],"notify":true}
  *
- * Idempotent on (order_id, tracking_number).
+ * Idempotent on (order_id, tracking_number). Quantities are clamped to what is
+ * left on each line; with nothing left the tracking is still recorded (no items).
  *
  * @package Opencart\Catalog\Controller\Extension\Skydropx\Api
  */
@@ -120,13 +121,12 @@ class Fulfillment extends \Opencart\System\Engine\Controller {
 					return;
 				}
 
-				if ($quantity > $lines[$order_product_id]['quantity_to_ship']) {
-					$skydropx->error(422, 'VALIDATION_ERROR', 'quantity for order_product_id ' . $order_product_id . ' exceeds the quantity left to ship (' . $lines[$order_product_id]['quantity_to_ship'] . ').');
+				// Clamped to what is left on the line (a retried or reprinted label never over-ships).
+				$quantity = min($quantity, $lines[$order_product_id]['quantity_to_ship']);
 
-					return;
+				if ($quantity > 0) {
+					$to_ship[$order_product_id] = $quantity;
 				}
-
-				$to_ship[$order_product_id] = $quantity;
 			}
 		}
 
@@ -151,8 +151,10 @@ class Fulfillment extends \Opencart\System\Engine\Controller {
 			$remaining += $line['quantity_to_ship'] - ($to_ship[$order_product_id] ?? 0);
 		}
 
+		// Shipped status only when this shipment ships the last units. A shipment with no
+		// items (nothing was left: second label / reprint) keeps the current status.
 		$current_status_id = $skydropx->getOrderStatusId($order_id);
-		$status_id = $remaining <= 0 ? $skydropx->getShippedStatusId() : $current_status_id;
+		$status_id = ($to_ship && $remaining <= 0) ? $skydropx->getShippedStatusId() : $current_status_id;
 
 		$comment = trim('Shipped with ' . ($carrier !== '' ? $carrier : 'Skydropx') . '. Tracking: ' . $tracking_number . ' ' . $tracking_url);
 
