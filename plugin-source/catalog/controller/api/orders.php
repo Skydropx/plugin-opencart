@@ -1,23 +1,23 @@
 <?php
-namespace Opencart\Catalog\Controller\Extension\Skydropx\Api;
+namespace Opencart\Catalog\Controller\Extension\PLUGIN_NAMESPACE\Api;
 /**
  * Class Orders
  *
- * GET index.php?route=extension/skydropx/api/orders&page=1&limit=50&payment_status=paid,pending&date_from=2026-11-01
+ * GET index.php?route=extension/PLUGIN_SLUG/api/orders&page=1&limit=50&payment_status=paid,pending&date_from=2026-11-01
  * Manual sync, page-number pagination. Cancelled orders are never listed.
  *
- * @package Opencart\Catalog\Controller\Extension\Skydropx\Api
+ * @package Opencart\Catalog\Controller\Extension\PLUGIN_NAMESPACE\Api
  */
 class Orders extends \Opencart\System\Engine\Controller {
 	private const MAX_LIMIT = 100;
 	private const DEFAULT_LIMIT = 50;
 
 	public function index(): void {
-		$this->load->model('extension/skydropx/module/skydropx');
+		$this->load->model('extension/PLUGIN_SLUG/module/PLUGIN_SLUG');
 
-		$skydropx = $this->model_extension_skydropx_module_skydropx;
+		$PLUGIN_SLUG = $this->model_extension_PLUGIN_SLUG_module_PLUGIN_SLUG;
 
-		if (!$skydropx->authorize()) {
+		if (!$PLUGIN_SLUG->authorize()) {
 			return;
 		}
 
@@ -27,7 +27,7 @@ class Orders extends \Opencart\System\Engine\Controller {
 		$limit = $this->positiveInt($get['limit'] ?? (string)self::DEFAULT_LIMIT);
 
 		if ($page === null || $limit === null) {
-			$skydropx->error(422, 'VALIDATION_ERROR', 'page and limit must be positive integers.');
+			$PLUGIN_SLUG->error(422, 'VALIDATION_ERROR', 'page and limit must be positive integers.');
 
 			return;
 		}
@@ -41,7 +41,7 @@ class Orders extends \Opencart\System\Engine\Controller {
 				$value = strtolower(trim($value));
 
 				if (!in_array($value, ['paid', 'pending'], true)) {
-					$skydropx->error(422, 'VALIDATION_ERROR', 'payment_status accepts a comma list of paid, pending.');
+					$PLUGIN_SLUG->error(422, 'VALIDATION_ERROR', 'payment_status accepts a comma list of paid, pending.');
 
 					return;
 				}
@@ -56,10 +56,10 @@ class Orders extends \Opencart\System\Engine\Controller {
 		}
 
 		if (isset($get['date_from']) && trim((string)$get['date_from']) !== '') {
-			$date_from = $skydropx->parseIsoDate(trim((string)$get['date_from']));
+			$date_from = $PLUGIN_SLUG->parseIsoDate(trim((string)$get['date_from']));
 
 			if ($date_from === '') {
-				$skydropx->error(422, 'VALIDATION_ERROR', 'date_from must be an ISO 8601 date.');
+				$PLUGIN_SLUG->error(422, 'VALIDATION_ERROR', 'date_from must be an ISO 8601 date.');
 
 				return;
 			}
@@ -67,7 +67,7 @@ class Orders extends \Opencart\System\Engine\Controller {
 			$date_from = date('Y-m-d H:i:s', strtotime('-30 days'));
 		}
 
-		$result = $skydropx->getOrders([
+		$result = $PLUGIN_SLUG->getOrders([
 			'store_id'       => (int)$this->config->get('config_store_id'),
 			'page'           => $page,
 			'limit'          => $limit,
@@ -75,7 +75,7 @@ class Orders extends \Opencart\System\Engine\Controller {
 			'date_from'      => $date_from
 		]);
 
-		$skydropx->json(200, [
+		$PLUGIN_SLUG->json(200, [
 			'total'  => $result['total'],
 			'page'   => $page,
 			'limit'  => $limit,

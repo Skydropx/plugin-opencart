@@ -1,34 +1,34 @@
 <?php
-namespace Opencart\Catalog\Controller\Extension\Skydropx\Api;
+namespace Opencart\Catalog\Controller\Extension\PLUGIN_NAMESPACE\Api;
 /**
  * Class Tracking
  *
- * POST index.php?route=extension/skydropx/api/tracking
+ * POST index.php?route=extension/PLUGIN_SLUG/api/tracking
  * Body: {"order_id":42,"tracking_number":"123","status":"IN_TRANSIT","carrier":"DHL","tracking_url":"https://..."}
  *
  * Idempotent on (order_id, tracking_number, status).
  *
- * @package Opencart\Catalog\Controller\Extension\Skydropx\Api
+ * @package Opencart\Catalog\Controller\Extension\PLUGIN_NAMESPACE\Api
  */
 class Tracking extends \Opencart\System\Engine\Controller {
 	public function index(): void {
-		$this->load->model('extension/skydropx/module/skydropx');
+		$this->load->model('extension/PLUGIN_SLUG/module/PLUGIN_SLUG');
 
-		$skydropx = $this->model_extension_skydropx_module_skydropx;
+		$PLUGIN_SLUG = $this->model_extension_PLUGIN_SLUG_module_PLUGIN_SLUG;
 
-		if (!$skydropx->authorize()) {
+		if (!$PLUGIN_SLUG->authorize()) {
 			return;
 		}
 
-		$body = $skydropx->readJsonBody();
+		$body = $PLUGIN_SLUG->readJsonBody();
 
 		if ($body === null) {
-			$skydropx->error(422, 'VALIDATION_ERROR', 'The request body must be a JSON object.');
+			$PLUGIN_SLUG->error(422, 'VALIDATION_ERROR', 'The request body must be a JSON object.');
 
 			return;
 		}
 
-		$order_id = $skydropx->parseId($body['order_id'] ?? null);
+		$order_id = $PLUGIN_SLUG->parseId($body['order_id'] ?? null);
 		$tracking_number = is_scalar($body['tracking_number'] ?? null) ? trim((string)$body['tracking_number']) : '';
 		$status = is_scalar($body['status'] ?? null) ? strtoupper(trim((string)$body['status'])) : '';
 		$carrier = is_scalar($body['carrier'] ?? null) ? trim((string)$body['carrier']) : '';
@@ -52,35 +52,35 @@ class Tracking extends \Opencart\System\Engine\Controller {
 			$errors[] = 'carrier must be at most 64 characters';
 		}
 
-		if ($tracking_url !== '' && (strlen($tracking_url) > 512 || !$skydropx->isValidUrl($tracking_url))) {
+		if ($tracking_url !== '' && (strlen($tracking_url) > 512 || !$PLUGIN_SLUG->isValidUrl($tracking_url))) {
 			$errors[] = 'tracking_url must be an http(s) URL (max 512 characters)';
 		}
 
 		if ($errors) {
-			$skydropx->error(422, 'VALIDATION_ERROR', implode('; ', $errors) . '.');
+			$PLUGIN_SLUG->error(422, 'VALIDATION_ERROR', implode('; ', $errors) . '.');
 
 			return;
 		}
 
-		if (!$skydropx->getOrderRow($order_id, (int)$this->config->get('config_store_id'))) {
-			$skydropx->error(404, 'ORDER_NOT_FOUND', 'Order not found.');
+		if (!$PLUGIN_SLUG->getOrderRow($order_id, (int)$this->config->get('config_store_id'))) {
+			$PLUGIN_SLUG->error(404, 'ORDER_NOT_FOUND', 'Order not found.');
 
 			return;
 		}
 
-		$shipment = $skydropx->getShipment($order_id, $tracking_number);
+		$shipment = $PLUGIN_SLUG->getShipment($order_id, $tracking_number);
 
 		if (!$shipment) {
 			// Label created outside api/fulfillment: keep track of it anyway.
-			$skydropx->addShipment($order_id, $tracking_number, $carrier, $tracking_url);
+			$PLUGIN_SLUG->addShipment($order_id, $tracking_number, $carrier, $tracking_url);
 
-			$shipment = $skydropx->getShipment($order_id, $tracking_number);
+			$shipment = $PLUGIN_SLUG->getShipment($order_id, $tracking_number);
 		}
 
 		$shipment_id = (int)($shipment['shipment_id'] ?? 0);
 
-		if (!$skydropx->addTrackingEvent($shipment_id, $order_id, $tracking_number, $status)) {
-			$skydropx->json(200, ['updated' => false, 'order_status_id' => $skydropx->getOrderStatusId($order_id)]);
+		if (!$PLUGIN_SLUG->addTrackingEvent($shipment_id, $order_id, $tracking_number, $status)) {
+			$PLUGIN_SLUG->json(200, ['updated' => false, 'order_status_id' => $PLUGIN_SLUG->getOrderStatusId($order_id)]);
 
 			return;
 		}
@@ -88,12 +88,12 @@ class Tracking extends \Opencart\System\Engine\Controller {
 		// A late non-final event never moves a delivered shipment backwards.
 		$shipment_status = (($shipment['status'] ?? '') == 'DELIVERED') ? 'DELIVERED' : $status;
 
-		$skydropx->updateShipment($shipment_id, $shipment_status, $carrier, $tracking_url);
+		$PLUGIN_SLUG->updateShipment($shipment_id, $shipment_status, $carrier, $tracking_url);
 
-		$status_id = $skydropx->getOrderStatusId($order_id);
+		$status_id = $PLUGIN_SLUG->getOrderStatusId($order_id);
 
-		if ($status == 'DELIVERED' && $skydropx->allShipmentsDelivered($order_id)) {
-			$status_id = $skydropx->getDeliveredStatusId();
+		if ($status == 'DELIVERED' && $PLUGIN_SLUG->allShipmentsDelivered($order_id)) {
+			$status_id = $PLUGIN_SLUG->getDeliveredStatusId();
 		}
 
 		$comment = trim('Tracking update: ' . $status . '. ' . ($carrier !== '' ? $carrier . ' ' : '') . $tracking_number . ' ' . $tracking_url);
@@ -107,6 +107,6 @@ class Tracking extends \Opencart\System\Engine\Controller {
 			$this->log->write('PLUGIN_NAME: order history for order ' . $order_id . ' failed after tracking update (' . get_class($e) . ').');
 		}
 
-		$skydropx->json(200, ['updated' => true, 'order_status_id' => $skydropx->getOrderStatusId($order_id)]);
+		$PLUGIN_SLUG->json(200, ['updated' => true, 'order_status_id' => $PLUGIN_SLUG->getOrderStatusId($order_id)]);
 	}
 }

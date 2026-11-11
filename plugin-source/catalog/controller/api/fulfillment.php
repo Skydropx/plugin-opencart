@@ -1,40 +1,40 @@
 <?php
-namespace Opencart\Catalog\Controller\Extension\Skydropx\Api;
+namespace Opencart\Catalog\Controller\Extension\PLUGIN_NAMESPACE\Api;
 /**
  * Class Fulfillment
  *
- * POST index.php?route=extension/skydropx/api/fulfillment
+ * POST index.php?route=extension/PLUGIN_SLUG/api/fulfillment
  * Body: {"order_id":42,"tracking_number":"123","carrier":"DHL","tracking_url":"https://...",
  *        "items":[{"order_product_id":7,"quantity":2}],"notify":true}
  *
  * Idempotent on (order_id, tracking_number). Quantities are clamped to what is
  * left on each line; with nothing left the tracking is still recorded (no items).
  *
- * @package Opencart\Catalog\Controller\Extension\Skydropx\Api
+ * @package Opencart\Catalog\Controller\Extension\PLUGIN_NAMESPACE\Api
  */
 class Fulfillment extends \Opencart\System\Engine\Controller {
 	public function index(): void {
-		$this->load->model('extension/skydropx/module/skydropx');
+		$this->load->model('extension/PLUGIN_SLUG/module/PLUGIN_SLUG');
 
-		$skydropx = $this->model_extension_skydropx_module_skydropx;
+		$PLUGIN_SLUG = $this->model_extension_PLUGIN_SLUG_module_PLUGIN_SLUG;
 
-		if (!$skydropx->authorize()) {
+		if (!$PLUGIN_SLUG->authorize()) {
 			return;
 		}
 
-		$body = $skydropx->readJsonBody();
+		$body = $PLUGIN_SLUG->readJsonBody();
 
 		if ($body === null) {
-			$skydropx->error(422, 'VALIDATION_ERROR', 'The request body must be a JSON object.');
+			$PLUGIN_SLUG->error(422, 'VALIDATION_ERROR', 'The request body must be a JSON object.');
 
 			return;
 		}
 
-		$order_id = $skydropx->parseId($body['order_id'] ?? null);
+		$order_id = $PLUGIN_SLUG->parseId($body['order_id'] ?? null);
 		$tracking_number = is_scalar($body['tracking_number'] ?? null) ? trim((string)$body['tracking_number']) : '';
 		$carrier = is_scalar($body['carrier'] ?? null) ? trim((string)$body['carrier']) : '';
 		$tracking_url = is_scalar($body['tracking_url'] ?? null) ? trim((string)$body['tracking_url']) : '';
-		$notify = array_key_exists('notify', $body) ? $skydropx->parseBool($body['notify']) : false;
+		$notify = array_key_exists('notify', $body) ? $PLUGIN_SLUG->parseBool($body['notify']) : false;
 		$items = $body['items'] ?? [];
 
 		$errors = [];
@@ -51,7 +51,7 @@ class Fulfillment extends \Opencart\System\Engine\Controller {
 			$errors[] = 'carrier must be at most 64 characters';
 		}
 
-		if ($tracking_url !== '' && (strlen($tracking_url) > 512 || !$skydropx->isValidUrl($tracking_url))) {
+		if ($tracking_url !== '' && (strlen($tracking_url) > 512 || !$PLUGIN_SLUG->isValidUrl($tracking_url))) {
 			$errors[] = 'tracking_url must be an http(s) URL (max 512 characters)';
 		}
 
@@ -67,8 +67,8 @@ class Fulfillment extends \Opencart\System\Engine\Controller {
 
 		if (!$errors && $items) {
 			foreach ($items as $item) {
-				$order_product_id = is_array($item) ? $skydropx->parseId($item['order_product_id'] ?? null) : null;
-				$quantity = is_array($item) ? $skydropx->parseId($item['quantity'] ?? null) : null;
+				$order_product_id = is_array($item) ? $PLUGIN_SLUG->parseId($item['order_product_id'] ?? null) : null;
+				$quantity = is_array($item) ? $PLUGIN_SLUG->parseId($item['quantity'] ?? null) : null;
 
 				if ($order_product_id === null || $quantity === null) {
 					$errors[] = 'each item needs a positive order_product_id and quantity';
@@ -81,20 +81,20 @@ class Fulfillment extends \Opencart\System\Engine\Controller {
 		}
 
 		if ($errors) {
-			$skydropx->error(422, 'VALIDATION_ERROR', implode('; ', $errors) . '.');
+			$PLUGIN_SLUG->error(422, 'VALIDATION_ERROR', implode('; ', $errors) . '.');
 
 			return;
 		}
 
 		$store_id = (int)$this->config->get('config_store_id');
 
-		if (!$skydropx->getOrderRow($order_id, $store_id)) {
-			$skydropx->error(404, 'ORDER_NOT_FOUND', 'Order not found.');
+		if (!$PLUGIN_SLUG->getOrderRow($order_id, $store_id)) {
+			$PLUGIN_SLUG->error(404, 'ORDER_NOT_FOUND', 'Order not found.');
 
 			return;
 		}
 
-		$existing = $skydropx->getShipment($order_id, $tracking_number);
+		$existing = $PLUGIN_SLUG->getShipment($order_id, $tracking_number);
 
 		if ($existing) {
 			$this->replay($order_id, (int)$existing['shipment_id'], $tracking_number);
@@ -102,7 +102,7 @@ class Fulfillment extends \Opencart\System\Engine\Controller {
 			return;
 		}
 
-		$lines = $skydropx->getShippableLines($order_id);
+		$lines = $PLUGIN_SLUG->getShippableLines($order_id);
 
 		// items empty/omitted = every remaining quantity.
 		$to_ship = [];
@@ -116,7 +116,7 @@ class Fulfillment extends \Opencart\System\Engine\Controller {
 		} else {
 			foreach ($requested as $order_product_id => $quantity) {
 				if (!isset($lines[$order_product_id])) {
-					$skydropx->error(422, 'VALIDATION_ERROR', 'order_product_id ' . $order_product_id . ' is not a shippable line of this order.');
+					$PLUGIN_SLUG->error(422, 'VALIDATION_ERROR', 'order_product_id ' . $order_product_id . ' is not a shippable line of this order.');
 
 					return;
 				}
@@ -130,11 +130,11 @@ class Fulfillment extends \Opencart\System\Engine\Controller {
 			}
 		}
 
-		$shipment_id = $skydropx->addShipment($order_id, $tracking_number, $carrier, $tracking_url);
+		$shipment_id = $PLUGIN_SLUG->addShipment($order_id, $tracking_number, $carrier, $tracking_url);
 
 		if (!$shipment_id) {
 			// A concurrent retry created it first.
-			$existing = $skydropx->getShipment($order_id, $tracking_number);
+			$existing = $PLUGIN_SLUG->getShipment($order_id, $tracking_number);
 
 			$this->replay($order_id, (int)($existing['shipment_id'] ?? 0), $tracking_number);
 
@@ -142,7 +142,7 @@ class Fulfillment extends \Opencart\System\Engine\Controller {
 		}
 
 		foreach ($to_ship as $order_product_id => $quantity) {
-			$skydropx->addShipmentItem($shipment_id, $order_id, $order_product_id, $quantity);
+			$PLUGIN_SLUG->addShipmentItem($shipment_id, $order_id, $order_product_id, $quantity);
 		}
 
 		$remaining = 0;
@@ -153,8 +153,8 @@ class Fulfillment extends \Opencart\System\Engine\Controller {
 
 		// Shipped status only when this shipment ships the last units. A shipment with no
 		// items (nothing was left: second label / reprint) keeps the current status.
-		$current_status_id = $skydropx->getOrderStatusId($order_id);
-		$status_id = ($to_ship && $remaining <= 0) ? $skydropx->getShippedStatusId() : $current_status_id;
+		$current_status_id = $PLUGIN_SLUG->getOrderStatusId($order_id);
+		$status_id = ($to_ship && $remaining <= 0) ? $PLUGIN_SLUG->getShippedStatusId() : $current_status_id;
 
 		$comment = trim('Shipped with ' . ($carrier !== '' ? $carrier : 'PLUGIN_NAME') . '. Tracking: ' . $tracking_number . ' ' . $tracking_url);
 
@@ -167,24 +167,24 @@ class Fulfillment extends \Opencart\System\Engine\Controller {
 			$this->log->write('PLUGIN_NAME: order history for order ' . $order_id . ' failed after fulfillment (' . get_class($e) . ').');
 		}
 
-		$skydropx->json(201, [
+		$PLUGIN_SLUG->json(201, [
 			'created'         => true,
 			'order_id'        => $order_id,
 			'shipment_id'     => $shipment_id,
 			'tracking_number' => $tracking_number,
-			'order_status_id' => $skydropx->getOrderStatusId($order_id)
+			'order_status_id' => $PLUGIN_SLUG->getOrderStatusId($order_id)
 		]);
 	}
 
 	private function replay(int $order_id, int $shipment_id, string $tracking_number): void {
-		$skydropx = $this->model_extension_skydropx_module_skydropx;
+		$PLUGIN_SLUG = $this->model_extension_PLUGIN_SLUG_module_PLUGIN_SLUG;
 
-		$skydropx->json(200, [
+		$PLUGIN_SLUG->json(200, [
 			'created'         => false,
 			'order_id'        => $order_id,
 			'shipment_id'     => $shipment_id,
 			'tracking_number' => $tracking_number,
-			'order_status_id' => $skydropx->getOrderStatusId($order_id)
+			'order_status_id' => $PLUGIN_SLUG->getOrderStatusId($order_id)
 		]);
 	}
 }

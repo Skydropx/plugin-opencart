@@ -1,38 +1,38 @@
 <?php
-namespace Opencart\Catalog\Controller\Extension\Skydropx\Api;
+namespace Opencart\Catalog\Controller\Extension\PLUGIN_NAMESPACE\Api;
 /**
  * Class Order
  *
- * GET index.php?route=extension/skydropx/api/order&order_id=42
+ * GET index.php?route=extension/PLUGIN_SLUG/api/order&order_id=42
  *
- * @package Opencart\Catalog\Controller\Extension\Skydropx\Api
+ * @package Opencart\Catalog\Controller\Extension\PLUGIN_NAMESPACE\Api
  */
 class Order extends \Opencart\System\Engine\Controller {
 	public function index(): void {
-		$this->load->model('extension/skydropx/module/skydropx');
+		$this->load->model('extension/PLUGIN_SLUG/module/PLUGIN_SLUG');
 
-		$skydropx = $this->model_extension_skydropx_module_skydropx;
+		$PLUGIN_SLUG = $this->model_extension_PLUGIN_SLUG_module_PLUGIN_SLUG;
 
-		if (!$skydropx->authorize()) {
+		if (!$PLUGIN_SLUG->authorize()) {
 			return;
 		}
 
 		$order_id = trim((string)($this->request->get['order_id'] ?? ''));
 
 		if (!preg_match('/^\d{1,10}$/', $order_id) || (int)$order_id < 1) {
-			$skydropx->error(422, 'VALIDATION_ERROR', 'order_id must be a positive integer.');
+			$PLUGIN_SLUG->error(422, 'VALIDATION_ERROR', 'order_id must be a positive integer.');
 
 			return;
 		}
 
-		$order = $skydropx->getOrder((int)$order_id, (int)$this->config->get('config_store_id'));
+		$order = $PLUGIN_SLUG->getOrder((int)$order_id, (int)$this->config->get('config_store_id'));
 
 		if (!$order) {
-			$skydropx->error(404, 'ORDER_NOT_FOUND', 'Order not found.');
+			$PLUGIN_SLUG->error(404, 'ORDER_NOT_FOUND', 'Order not found.');
 
 			return;
 		}
 
-		$skydropx->json(200, ['order' => $order]);
+		$PLUGIN_SLUG->json(200, ['order' => $order]);
 	}
 }

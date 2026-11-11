@@ -1,13 +1,13 @@
 <?php
-namespace Opencart\Admin\Model\Extension\Skydropx\Module;
+namespace Opencart\Admin\Model\Extension\PLUGIN_NAMESPACE\Module;
 /**
- * Class Skydropx
+ * Class PLUGIN_NAMESPACE
  *
- * Schema and settings for the Skydropx extension (admin side).
+ * Schema and settings for the PLUGIN_NAME extension (admin side).
  *
- * @package Opencart\Admin\Model\Extension\Skydropx\Module
+ * @package Opencart\Admin\Model\Extension\PLUGIN_NAMESPACE\Module
  */
-class Skydropx extends \Opencart\System\Engine\Model {
+class PLUGIN_NAMESPACE extends \Opencart\System\Engine\Model {
 	/**
 	 * Build values: build.sh replaces these strings with the brand's app URL,
 	 * the ecommerce service URL and the environment of the package.
@@ -17,7 +17,7 @@ class Skydropx extends \Opencart\System\Engine\Model {
 	public const BUILD_ENVIRONMENT = 'PLUGIN_ENVIRONMENT';
 
 	public function install(): void {
-		$this->db->query("CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "skydropx_shipment` (
+		$this->db->query("CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "PLUGIN_SLUG_shipment` (
 			`shipment_id` INT(11) NOT NULL AUTO_INCREMENT,
 			`order_id` INT(11) NOT NULL,
 			`tracking_number` VARCHAR(128) NOT NULL,
@@ -30,7 +30,7 @@ class Skydropx extends \Opencart\System\Engine\Model {
 			UNIQUE KEY `order_tracking` (`order_id`, `tracking_number`)
 		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
 
-		$this->db->query("CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "skydropx_shipment_item` (
+		$this->db->query("CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "PLUGIN_SLUG_shipment_item` (
 			`shipment_item_id` INT(11) NOT NULL AUTO_INCREMENT,
 			`shipment_id` INT(11) NOT NULL,
 			`order_id` INT(11) NOT NULL,
@@ -41,7 +41,7 @@ class Skydropx extends \Opencart\System\Engine\Model {
 			KEY `order_id` (`order_id`)
 		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
 
-		$this->db->query("CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "skydropx_tracking_event` (
+		$this->db->query("CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "PLUGIN_SLUG_tracking_event` (
 			`tracking_event_id` INT(11) NOT NULL AUTO_INCREMENT,
 			`shipment_id` INT(11) NOT NULL,
 			`order_id` INT(11) NOT NULL,
@@ -55,9 +55,9 @@ class Skydropx extends \Opencart\System\Engine\Model {
 	}
 
 	public function uninstall(): void {
-		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "skydropx_tracking_event`");
-		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "skydropx_shipment_item`");
-		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "skydropx_shipment`");
+		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "PLUGIN_SLUG_tracking_event`");
+		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "PLUGIN_SLUG_shipment_item`");
+		$this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "PLUGIN_SLUG_shipment`");
 	}
 
 	/**
@@ -77,7 +77,7 @@ class Skydropx extends \Opencart\System\Engine\Model {
 
 	/**
 	 * Writes only the given keys (core editSetting() would wipe every other
-	 * key of the code, e.g. the values Skydropx stores through the API).
+	 * key of the code, e.g. the values PLUGIN_NAME stores through the API).
 	 *
 	 * @param array<string, mixed> $values
 	 */

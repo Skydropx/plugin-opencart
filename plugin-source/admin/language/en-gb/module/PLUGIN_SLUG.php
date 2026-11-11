@@ -12,12 +12,12 @@ $_['text_connection']           = 'Connection';
 $_['text_origin']               = 'Origin address';
 $_['text_origin_help']          = 'Address your parcels ship from. PLUGIN_NAME uses it for quotes and labels.';
 $_['text_statuses']             = 'Order statuses';
-$_['text_skydropx']             = 'Managed by PLUGIN_NAME (read-only)';
+$_['text_PLUGIN_SLUG']          = 'Managed by PLUGIN_NAME (read-only)';
 $_['text_enabled']              = 'Enabled';
 $_['text_disabled']             = 'Disabled';
 $_['text_select']               = ' --- Please Select --- ';
 $_['text_none']                 = ' --- None --- ';
-$_['text_api_key_help']         = 'Paste this key in PLUGIN_NAME when you connect the store. It is sent in the X-Skydropx-Api-Key header.';
+$_['text_api_key_help']         = 'Paste this key in PLUGIN_NAME when you connect the store.';
 
 // Entry
 $_['entry_status']              = 'Status';

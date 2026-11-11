@@ -1,15 +1,15 @@
 <?php
-namespace Opencart\Catalog\Model\Extension\Skydropx\Shipping;
+namespace Opencart\Catalog\Model\Extension\PLUGIN_NAMESPACE\Shipping;
 /**
- * Class Skydropx
+ * Class PLUGIN_NAMESPACE
  *
- * Live Skydropx rates at checkout (CARRIER_SERVICE_V2). Calls the
+ * Live PLUGIN_NAME rates at checkout (CARRIER_SERVICE_V2). Calls the
  * quotation_base_url stored by api/quotation with a signed request.
  * Any failure returns no rates; checkout keeps working.
  *
- * @package Opencart\Catalog\Model\Extension\Skydropx\Shipping
+ * @package Opencart\Catalog\Model\Extension\PLUGIN_NAMESPACE\Shipping
  */
-class Skydropx extends \Opencart\System\Engine\Model {
+class PLUGIN_NAMESPACE extends \Opencart\System\Engine\Model {
 	private const TIMEOUT = 5;
 	private const CACHE_TTL = 300;
 	private const RATE_CURRENCY = 'MXN';
@@ -30,13 +30,13 @@ class Skydropx extends \Opencart\System\Engine\Model {
 	}
 
 	private function quote(array $address): array {
-		$this->load->model('extension/skydropx/module/skydropx');
+		$this->load->model('extension/PLUGIN_SLUG/module/PLUGIN_SLUG');
 
-		$skydropx = $this->model_extension_skydropx_module_skydropx;
+		$PLUGIN_SLUG = $this->model_extension_PLUGIN_SLUG_module_PLUGIN_SLUG;
 
-		$url = (string)$skydropx->getSetting('skydropx_quotation_base_url', '');
+		$url = (string)$PLUGIN_SLUG->getSetting('PLUGIN_SLUG_quotation_base_url', '');
 
-		if (!$skydropx->isEnabled() || !$skydropx->getSetting('shipping_skydropx_status', false) || !$skydropx->isValidUrl($url) || $skydropx->getApiKey() === '') {
+		if (!$PLUGIN_SLUG->isEnabled() || !$PLUGIN_SLUG->getSetting('shipping_PLUGIN_SLUG_status', false) || !$PLUGIN_SLUG->isValidUrl($url) || $PLUGIN_SLUG->getApiKey() === '') {
 			return [];
 		}
 
@@ -56,10 +56,10 @@ class Skydropx extends \Opencart\System\Engine\Model {
 			$items[] = [
 				'id'       => (int)$product['product_id'],
 				'quantity' => $quantity,
-				'weight'   => round($skydropx->toKg($unit_weight, (int)$product['weight_class_id']), 3),
-				'width'    => round($skydropx->toCm((float)$product['width'], (int)$product['length_class_id']), 2),
-				'height'   => round($skydropx->toCm((float)$product['height'], (int)$product['length_class_id']), 2),
-				'length'   => round($skydropx->toCm((float)$product['length'], (int)$product['length_class_id']), 2)
+				'weight'   => round($PLUGIN_SLUG->toKg($unit_weight, (int)$product['weight_class_id']), 3),
+				'width'    => round($PLUGIN_SLUG->toCm((float)$product['width'], (int)$product['length_class_id']), 2),
+				'height'   => round($PLUGIN_SLUG->toCm((float)$product['height'], (int)$product['length_class_id']), 2),
+				'length'   => round($PLUGIN_SLUG->toCm((float)$product['length'], (int)$product['length_class_id']), 2)
 			];
 
 			$total_price += (float)$product['total'];
@@ -69,7 +69,7 @@ class Skydropx extends \Opencart\System\Engine\Model {
 			return [];
 		}
 
-		$origin = $skydropx->getOrigin();
+		$origin = $PLUGIN_SLUG->getOrigin();
 
 		$payload = [
 			'address_from' => [
@@ -94,13 +94,13 @@ class Skydropx extends \Opencart\System\Engine\Model {
 
 		$body = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION);
 
-		$rates = $this->fetchRates($skydropx, $url, $body);
+		$rates = $this->fetchRates($PLUGIN_SLUG, $url, $body);
 
 		if (!$rates) {
 			return [];
 		}
 
-		$this->load->language('extension/skydropx/shipping/skydropx');
+		$this->load->language('extension/PLUGIN_SLUG/shipping/PLUGIN_SLUG');
 
 		$base_currency = (string)$this->config->get('config_currency');
 		$session_currency = (string)($this->session->data['currency'] ?? $base_currency);
@@ -141,7 +141,7 @@ class Skydropx extends \Opencart\System\Engine\Model {
 			}
 
 			$quote_data[$service_code] = [
-				'code'         => 'skydropx.' . $service_code,
+				'code'         => 'PLUGIN_SLUG.' . $service_code,
 				'name'         => sprintf($this->language->get('text_rate_name'), $service_name),
 				'cost'         => round($cost, 2),
 				'tax_class_id' => 0,
@@ -154,10 +154,10 @@ class Skydropx extends \Opencart\System\Engine\Model {
 		}
 
 		return [
-			'code'       => 'skydropx',
+			'code'       => 'PLUGIN_SLUG',
 			'name'       => $this->language->get('heading_title'),
 			'quote'      => $quote_data,
-			'sort_order' => (int)$skydropx->getSetting('shipping_skydropx_sort_order', 0),
+			'sort_order' => (int)$PLUGIN_SLUG->getSetting('shipping_PLUGIN_SLUG_sort_order', 0),
 			'error'      => false
 		];
 	}
@@ -166,15 +166,15 @@ class Skydropx extends \Opencart\System\Engine\Model {
 	 * Signed POST to the quotation URL; responses are cached in the session
 	 * per request body because checkout asks for quotes on several steps.
 	 */
-	private function fetchRates(object $skydropx, string $url, string $body): array {
+	private function fetchRates(object $PLUGIN_SLUG, string $url, string $body): array {
 		$key = hash('sha256', $url . "\n" . $body);
-		$cache = $this->session->data['skydropx_quote'] ?? null;
+		$cache = $this->session->data['PLUGIN_SLUG_quote'] ?? null;
 
 		if (is_array($cache) && ($cache['key'] ?? '') === $key && ($cache['expires'] ?? 0) > time()) {
 			return $cache['rates'];
 		}
 
-		$result = $skydropx->postSigned($url, $body, [], self::TIMEOUT);
+		$result = $PLUGIN_SLUG->postSigned($url, $body, [], self::TIMEOUT);
 
 		if ($result['status'] < 200 || $result['status'] >= 300) {
 			$this->log->write('PLUGIN_NAME: quotation request failed (HTTP ' . $result['status'] . ($result['error'] !== '' ? ', ' . $result['error'] : '') . ').');
@@ -185,7 +185,7 @@ class Skydropx extends \Opencart\System\Engine\Model {
 		$data = json_decode($result['body'], true);
 		$rates = is_array($data) && isset($data['rates']) && is_array($data['rates']) ? array_values($data['rates']) : [];
 
-		$this->session->data['skydropx_quote'] = ['key' => $key, 'expires' => time() + self::CACHE_TTL, 'rates' => $rates];
+		$this->session->data['PLUGIN_SLUG_quote'] = ['key' => $key, 'expires' => time() + self::CACHE_TTL, 'rates' => $rates];
 
 		return $rates;
 	}

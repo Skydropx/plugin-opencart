@@ -1,6 +1,6 @@
 {
   "name": "PLUGIN_NAME",
-  "code": "skydropx",
+  "code": "PLUGIN_SLUG",
   "description": "PLUGIN_DESCRIPTION",
   "version": "PLUGIN_VERSION",
   "author": "PLUGIN_AUTHOR",

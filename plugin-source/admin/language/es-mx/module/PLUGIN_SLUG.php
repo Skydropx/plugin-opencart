@@ -12,12 +12,12 @@ $_['text_connection']           = 'Conexión';
 $_['text_origin']               = 'Dirección de origen';
 $_['text_origin_help']          = 'Dirección desde la que envías tus paquetes. PLUGIN_NAME la usa para cotizar y generar guías.';
 $_['text_statuses']             = 'Estados de pedido';
-$_['text_skydropx']             = 'Administrado por PLUGIN_NAME (solo lectura)';
+$_['text_PLUGIN_SLUG']          = 'Administrado por PLUGIN_NAME (solo lectura)';
 $_['text_enabled']              = 'Activado';
 $_['text_disabled']             = 'Desactivado';
 $_['text_select']               = ' --- Selecciona --- ';
 $_['text_none']                 = ' --- Ninguno --- ';
-$_['text_api_key_help']         = 'Pega esta clave en PLUGIN_NAME al conectar la tienda. Se envía en el encabezado X-Skydropx-Api-Key.';
+$_['text_api_key_help']         = 'Pega esta clave en PLUGIN_NAME al conectar la tienda.';
 
 // Entry
 $_['entry_status']              = 'Estado';

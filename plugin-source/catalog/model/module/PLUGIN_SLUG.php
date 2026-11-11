@@ -1,17 +1,17 @@
 <?php
-namespace Opencart\Catalog\Model\Extension\Skydropx\Module;
+namespace Opencart\Catalog\Model\Extension\PLUGIN_NAMESPACE\Module;
 /**
- * Class Skydropx
+ * Class PLUGIN_NAMESPACE
  *
- * Shared catalog logic for the Skydropx extension: settings, API key
+ * Shared catalog logic for the PLUGIN_NAME extension: settings, API key
  * authentication, JSON responses, order serialisation, shipments and
  * signed outbound HTTP calls.
  *
- * Load with $this->load->model('extension/skydropx/module/skydropx');
+ * Load with $this->load->model('extension/PLUGIN_SLUG/module/PLUGIN_SLUG');
  *
- * @package Opencart\Catalog\Model\Extension\Skydropx\Module
+ * @package Opencart\Catalog\Model\Extension\PLUGIN_NAMESPACE\Module
  */
-class Skydropx extends \Opencart\System\Engine\Model {
+class PLUGIN_NAMESPACE extends \Opencart\System\Engine\Model {
 	public const EXTENSION_VERSION = 'PLUGIN_VERSION';
 
 	public const DEFAULT_SHIPPED_STATUS_ID = 3;
@@ -19,7 +19,7 @@ class Skydropx extends \Opencart\System\Engine\Model {
 	public const DEFAULT_CANCELLED_STATUS_IDS = [7, 8, 10, 11, 13, 14, 16];
 
 	/** Settings live on the default store (store_id 0). */
-	private const SETTING_CODES = ['skydropx', 'module_skydropx', 'shipping_skydropx'];
+	private const SETTING_CODES = ['PLUGIN_SLUG', 'module_PLUGIN_SLUG', 'shipping_PLUGIN_SLUG'];
 
 	private ?array $settings = null;
 
@@ -80,22 +80,22 @@ class Skydropx extends \Opencart\System\Engine\Model {
 	}
 
 	public function isEnabled(): bool {
-		return (bool)$this->getSetting('module_skydropx_status', false);
+		return (bool)$this->getSetting('module_PLUGIN_SLUG_status', false);
 	}
 
 	public function getApiKey(): string {
-		return (string)$this->getSetting('skydropx_api_key', '');
+		return (string)$this->getSetting('PLUGIN_SLUG_api_key', '');
 	}
 
 	/**
-	 * Makes sure the `skydropx` shipping method is registered so checkout
+	 * Makes sure the `PLUGIN_SLUG` shipping method is registered so checkout
 	 * picks it up (the module installer normally does this already).
 	 */
 	public function ensureShippingExtension(): void {
-		$query = $this->db->query("SELECT `extension_id` FROM `" . DB_PREFIX . "extension` WHERE `type` = 'shipping' AND `code` = 'skydropx'");
+		$query = $this->db->query("SELECT `extension_id` FROM `" . DB_PREFIX . "extension` WHERE `type` = 'shipping' AND `code` = 'PLUGIN_SLUG'");
 
 		if (!$query->num_rows) {
-			$this->db->query("INSERT INTO `" . DB_PREFIX . "extension` SET `extension` = 'skydropx', `type` = 'shipping', `code` = 'skydropx'");
+			$this->db->query("INSERT INTO `" . DB_PREFIX . "extension` SET `extension` = 'PLUGIN_SLUG', `type` = 'shipping', `code` = 'PLUGIN_SLUG'");
 		}
 	}
 
@@ -175,8 +175,8 @@ class Skydropx extends \Opencart\System\Engine\Model {
 		$zone_name = '';
 		$zone_code = '';
 
-		$country_id = (int)$this->getSetting('skydropx_origin_country_id', 0);
-		$zone_id = (int)$this->getSetting('skydropx_origin_zone_id', 0);
+		$country_id = (int)$this->getSetting('PLUGIN_SLUG_origin_country_id', 0);
+		$zone_id = (int)$this->getSetting('PLUGIN_SLUG_origin_zone_id', 0);
 
 		if ($country_id) {
 			$query = $this->db->query("SELECT `iso_code_2` FROM `" . DB_PREFIX . "country` WHERE `country_id` = '" . (int)$country_id . "'");
@@ -197,14 +197,14 @@ class Skydropx extends \Opencart\System\Engine\Model {
 		}
 
 		return [
-			'name'         => $this->text($this->getSetting('skydropx_origin_name', '')),
-			'owner'        => $this->text($this->getSetting('skydropx_origin_owner', '')),
-			'email'        => $this->text($this->getSetting('skydropx_origin_email', '')),
-			'telephone'    => $this->text($this->getSetting('skydropx_origin_telephone', '')),
-			'address'      => $this->text($this->getSetting('skydropx_origin_address', '')),
-			'address_2'    => $this->text($this->getSetting('skydropx_origin_address_2', '')),
-			'city'         => $this->text($this->getSetting('skydropx_origin_city', '')),
-			'postcode'     => $this->text($this->getSetting('skydropx_origin_postcode', '')),
+			'name'         => $this->text($this->getSetting('PLUGIN_SLUG_origin_name', '')),
+			'owner'        => $this->text($this->getSetting('PLUGIN_SLUG_origin_owner', '')),
+			'email'        => $this->text($this->getSetting('PLUGIN_SLUG_origin_email', '')),
+			'telephone'    => $this->text($this->getSetting('PLUGIN_SLUG_origin_telephone', '')),
+			'address'      => $this->text($this->getSetting('PLUGIN_SLUG_origin_address', '')),
+			'address_2'    => $this->text($this->getSetting('PLUGIN_SLUG_origin_address_2', '')),
+			'city'         => $this->text($this->getSetting('PLUGIN_SLUG_origin_city', '')),
+			'postcode'     => $this->text($this->getSetting('PLUGIN_SLUG_origin_postcode', '')),
 			'country_iso2' => $country_iso2,
 			'zone_name'    => $zone_name,
 			'zone_code'    => $zone_code
@@ -329,7 +329,7 @@ class Skydropx extends \Opencart\System\Engine\Model {
 	}
 
 	public function getCancelledStatusIds(): array {
-		$ids = $this->getSetting('skydropx_cancelled_status_ids', null);
+		$ids = $this->getSetting('PLUGIN_SLUG_cancelled_status_ids', null);
 
 		if (!is_array($ids)) {
 			$ids = self::DEFAULT_CANCELLED_STATUS_IDS;
@@ -339,13 +339,13 @@ class Skydropx extends \Opencart\System\Engine\Model {
 	}
 
 	public function getShippedStatusId(): int {
-		$id = (int)$this->getSetting('skydropx_shipped_status_id', 0);
+		$id = (int)$this->getSetting('PLUGIN_SLUG_shipped_status_id', 0);
 
 		return $id > 0 ? $id : self::DEFAULT_SHIPPED_STATUS_ID;
 	}
 
 	public function getDeliveredStatusId(): int {
-		$id = (int)$this->getSetting('skydropx_delivered_status_id', 0);
+		$id = (int)$this->getSetting('PLUGIN_SLUG_delivered_status_id', 0);
 
 		return $id > 0 ? $id : self::DEFAULT_DELIVERED_STATUS_ID;
 	}
@@ -725,7 +725,7 @@ class Skydropx extends \Opencart\System\Engine\Model {
 	// ---------------------------------------------------------------------
 
 	private function getShipments(array $order_ids): array {
-		$query = $this->db->query("SELECT `order_id`, `tracking_number`, `carrier`, `tracking_url`, `date_added` FROM `" . DB_PREFIX . "skydropx_shipment` WHERE `order_id` IN (" . $this->sqlIn($order_ids) . ") ORDER BY `shipment_id`");
+		$query = $this->db->query("SELECT `order_id`, `tracking_number`, `carrier`, `tracking_url`, `date_added` FROM `" . DB_PREFIX . "PLUGIN_SLUG_shipment` WHERE `order_id` IN (" . $this->sqlIn($order_ids) . ") ORDER BY `shipment_id`");
 
 		$shipments = [];
 
@@ -742,7 +742,7 @@ class Skydropx extends \Opencart\System\Engine\Model {
 	}
 
 	private function getShippedQuantities(array $order_ids): array {
-		$query = $this->db->query("SELECT `order_product_id`, SUM(`quantity`) AS `quantity` FROM `" . DB_PREFIX . "skydropx_shipment_item` WHERE `order_id` IN (" . $this->sqlIn($order_ids) . ") GROUP BY `order_product_id`");
+		$query = $this->db->query("SELECT `order_product_id`, SUM(`quantity`) AS `quantity` FROM `" . DB_PREFIX . "PLUGIN_SLUG_shipment_item` WHERE `order_id` IN (" . $this->sqlIn($order_ids) . ") GROUP BY `order_product_id`");
 
 		$shipped = [];
 
@@ -754,7 +754,7 @@ class Skydropx extends \Opencart\System\Engine\Model {
 	}
 
 	public function getShipment(int $order_id, string $tracking_number): array {
-		$query = $this->db->query("SELECT * FROM `" . DB_PREFIX . "skydropx_shipment` WHERE `order_id` = '" . (int)$order_id . "' AND `tracking_number` = '" . $this->db->escape($tracking_number) . "'");
+		$query = $this->db->query("SELECT * FROM `" . DB_PREFIX . "PLUGIN_SLUG_shipment` WHERE `order_id` = '" . (int)$order_id . "' AND `tracking_number` = '" . $this->db->escape($tracking_number) . "'");
 
 		return $query->row;
 	}
@@ -764,7 +764,7 @@ class Skydropx extends \Opencart\System\Engine\Model {
 	 * Returns the new shipment_id, or 0 when it already existed.
 	 */
 	public function addShipment(int $order_id, string $tracking_number, string $carrier, string $tracking_url, string $status = 'CREATED'): int {
-		$this->db->query("INSERT IGNORE INTO `" . DB_PREFIX . "skydropx_shipment` SET `order_id` = '" . (int)$order_id . "', `tracking_number` = '" . $this->db->escape($tracking_number) . "', `carrier` = '" . $this->db->escape($carrier) . "', `tracking_url` = '" . $this->db->escape($tracking_url) . "', `status` = '" . $this->db->escape($status) . "', `date_added` = NOW(), `date_modified` = NOW()");
+		$this->db->query("INSERT IGNORE INTO `" . DB_PREFIX . "PLUGIN_SLUG_shipment` SET `order_id` = '" . (int)$order_id . "', `tracking_number` = '" . $this->db->escape($tracking_number) . "', `carrier` = '" . $this->db->escape($carrier) . "', `tracking_url` = '" . $this->db->escape($tracking_url) . "', `status` = '" . $this->db->escape($status) . "', `date_added` = NOW(), `date_modified` = NOW()");
 
 		if ($this->db->countAffected() < 1) {
 			return 0;
@@ -774,11 +774,11 @@ class Skydropx extends \Opencart\System\Engine\Model {
 	}
 
 	public function addShipmentItem(int $shipment_id, int $order_id, int $order_product_id, int $quantity): void {
-		$this->db->query("INSERT INTO `" . DB_PREFIX . "skydropx_shipment_item` SET `shipment_id` = '" . (int)$shipment_id . "', `order_id` = '" . (int)$order_id . "', `order_product_id` = '" . (int)$order_product_id . "', `quantity` = '" . (int)$quantity . "'");
+		$this->db->query("INSERT INTO `" . DB_PREFIX . "PLUGIN_SLUG_shipment_item` SET `shipment_id` = '" . (int)$shipment_id . "', `order_id` = '" . (int)$order_id . "', `order_product_id` = '" . (int)$order_product_id . "', `quantity` = '" . (int)$quantity . "'");
 	}
 
 	public function updateShipment(int $shipment_id, string $status, string $carrier, string $tracking_url): void {
-		$sql = "UPDATE `" . DB_PREFIX . "skydropx_shipment` SET `status` = '" . $this->db->escape($status) . "', `date_modified` = NOW()";
+		$sql = "UPDATE `" . DB_PREFIX . "PLUGIN_SLUG_shipment` SET `status` = '" . $this->db->escape($status) . "', `date_modified` = NOW()";
 
 		if ($carrier !== '') {
 			$sql .= ", `carrier` = '" . $this->db->escape($carrier) . "'";
@@ -795,13 +795,13 @@ class Skydropx extends \Opencart\System\Engine\Model {
 	 * Records a tracking event unless (order_id, tracking_number, status) exists.
 	 */
 	public function addTrackingEvent(int $shipment_id, int $order_id, string $tracking_number, string $status): bool {
-		$this->db->query("INSERT IGNORE INTO `" . DB_PREFIX . "skydropx_tracking_event` SET `shipment_id` = '" . (int)$shipment_id . "', `order_id` = '" . (int)$order_id . "', `tracking_number` = '" . $this->db->escape($tracking_number) . "', `status` = '" . $this->db->escape($status) . "', `date_added` = NOW()");
+		$this->db->query("INSERT IGNORE INTO `" . DB_PREFIX . "PLUGIN_SLUG_tracking_event` SET `shipment_id` = '" . (int)$shipment_id . "', `order_id` = '" . (int)$order_id . "', `tracking_number` = '" . $this->db->escape($tracking_number) . "', `status` = '" . $this->db->escape($status) . "', `date_added` = NOW()");
 
 		return $this->db->countAffected() > 0;
 	}
 
 	public function allShipmentsDelivered(int $order_id): bool {
-		$query = $this->db->query("SELECT COUNT(*) AS `total`, SUM(`status` = 'DELIVERED') AS `delivered` FROM `" . DB_PREFIX . "skydropx_shipment` WHERE `order_id` = '" . (int)$order_id . "'");
+		$query = $this->db->query("SELECT COUNT(*) AS `total`, SUM(`status` = 'DELIVERED') AS `delivered` FROM `" . DB_PREFIX . "PLUGIN_SLUG_shipment` WHERE `order_id` = '" . (int)$order_id . "'");
 
 		return (int)$query->row['total'] > 0 && (int)$query->row['total'] == (int)$query->row['delivered'];
 	}
