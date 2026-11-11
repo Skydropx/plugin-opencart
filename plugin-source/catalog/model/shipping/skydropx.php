@@ -23,7 +23,7 @@ class Skydropx extends \Opencart\System\Engine\Model {
 		try {
 			return $this->quote($address);
 		} catch (\Throwable $e) {
-			$this->log->write('Skydropx: checkout quote skipped (' . get_class($e) . ').');
+			$this->log->write('PLUGIN_NAME: checkout quote skipped (' . get_class($e) . ').');
 
 			return [];
 		}
@@ -177,7 +177,7 @@ class Skydropx extends \Opencart\System\Engine\Model {
 		$result = $skydropx->postSigned($url, $body, [], self::TIMEOUT);
 
 		if ($result['status'] < 200 || $result['status'] >= 300) {
-			$this->log->write('Skydropx: quotation request failed (HTTP ' . $result['status'] . ($result['error'] !== '' ? ', ' . $result['error'] : '') . ').');
+			$this->log->write('PLUGIN_NAME: quotation request failed (HTTP ' . $result['status'] . ($result['error'] !== '' ? ', ' . $result['error'] : '') . ').');
 
 			return [];
 		}

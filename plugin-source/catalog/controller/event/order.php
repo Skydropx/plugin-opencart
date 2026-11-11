@@ -26,7 +26,7 @@ class Order extends \Opencart\System\Engine\Controller {
 		try {
 			$this->send((int)($args[0] ?? 0));
 		} catch (\Throwable $e) {
-			$this->log->write('Skydropx: order webhook skipped (' . get_class($e) . ').');
+			$this->log->write('PLUGIN_NAME: order webhook skipped (' . get_class($e) . ').');
 		}
 	}
 
@@ -65,7 +65,7 @@ class Order extends \Opencart\System\Engine\Controller {
 		$result = $skydropx->postSigned($url, $body, ['X-Skydropx-Topic' => $topic], self::TIMEOUT, (string)$skydropx->getSetting('skydropx_webhook_store_url', ''));
 
 		if ($result['status'] < 200 || $result['status'] >= 300) {
-			$this->log->write('Skydropx: ' . $topic . ' webhook for order ' . $order_id . ' failed (HTTP ' . $result['status'] . ($result['error'] !== '' ? ', ' . $result['error'] : '') . ').');
+			$this->log->write('PLUGIN_NAME: ' . $topic . ' webhook for order ' . $order_id . ' failed (HTTP ' . $result['status'] . ($result['error'] !== '' ? ', ' . $result['error'] : '') . ').');
 		}
 	}
 }

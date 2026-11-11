@@ -156,7 +156,7 @@ class Fulfillment extends \Opencart\System\Engine\Controller {
 		$current_status_id = $skydropx->getOrderStatusId($order_id);
 		$status_id = ($to_ship && $remaining <= 0) ? $skydropx->getShippedStatusId() : $current_status_id;
 
-		$comment = trim('Shipped with ' . ($carrier !== '' ? $carrier : 'Skydropx') . '. Tracking: ' . $tracking_number . ' ' . $tracking_url);
+		$comment = trim('Shipped with ' . ($carrier !== '' ? $carrier : 'PLUGIN_NAME') . '. Tracking: ' . $tracking_number . ' ' . $tracking_url);
 
 		try {
 			$this->load->model('checkout/order');
@@ -164,7 +164,7 @@ class Fulfillment extends \Opencart\System\Engine\Controller {
 			$this->model_checkout_order->addHistory($order_id, $status_id, $comment, (bool)$notify);
 		} catch (\Throwable $e) {
 			// The shipment is stored; a failing side effect (e.g. mail transport) must not lose it.
-			$this->log->write('Skydropx: order history for order ' . $order_id . ' failed after fulfillment (' . get_class($e) . ').');
+			$this->log->write('PLUGIN_NAME: order history for order ' . $order_id . ' failed after fulfillment (' . get_class($e) . ').');
 		}
 
 		$skydropx->json(201, [

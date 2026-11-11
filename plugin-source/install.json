@@ -1,8 +1,8 @@
 {
-  "name": "Skydropx",
+  "name": "PLUGIN_NAME",
   "code": "skydropx",
-  "description": "Connects the store to Skydropx: order sync, fulfillment and tracking write-back, order webhooks and live shipping rates at checkout.",
-  "version": "1.0.0",
-  "author": "Skydropx",
-  "link": "https://www.skydropx.com"
+  "description": "PLUGIN_DESCRIPTION",
+  "version": "PLUGIN_VERSION",
+  "author": "PLUGIN_AUTHOR",
+  "link": "PLUGIN_AUTHOR_URI"
 }

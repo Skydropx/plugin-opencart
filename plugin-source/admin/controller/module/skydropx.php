@@ -194,7 +194,7 @@ class Skydropx extends \Opencart\System\Engine\Controller {
 
 		$this->model_setting_event->addEvent([
 			'code'        => self::EVENT_CODE,
-			'description' => 'Skydropx: posts order webhooks when an order history is added.',
+			'description' => 'PLUGIN_NAME: posts order webhooks when an order history is added.',
 			'trigger'     => $this->getOrderHistoryTrigger(),
 			'action'      => 'extension/skydropx/event/order.history',
 			'status'      => 1,

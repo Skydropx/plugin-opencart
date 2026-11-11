@@ -12,7 +12,7 @@ namespace Opencart\Catalog\Model\Extension\Skydropx\Module;
  * @package Opencart\Catalog\Model\Extension\Skydropx\Module
  */
 class Skydropx extends \Opencart\System\Engine\Model {
-	public const EXTENSION_VERSION = '1.0.0';
+	public const EXTENSION_VERSION = 'PLUGIN_VERSION';
 
 	public const DEFAULT_SHIPPED_STATUS_ID = 3;
 	public const DEFAULT_DELIVERED_STATUS_ID = 5;
@@ -118,7 +118,7 @@ class Skydropx extends \Opencart\System\Engine\Model {
 		}
 
 		if (!$this->isEnabled()) {
-			$this->error(403, 'EXTENSION_DISABLED', 'The Skydropx extension is disabled in this store.');
+			$this->error(403, 'EXTENSION_DISABLED', 'The PLUGIN_NAME extension is disabled in this store.');
 
 			return false;
 		}
@@ -238,7 +238,7 @@ class Skydropx extends \Opencart\System\Engine\Model {
 			'Accept: application/json',
 			'X-Skydropx-Store-Url: ' . ($store_url !== '' ? $store_url : $this->getStoreUrl()),
 			'X-Skydropx-Signature: ' . $this->sign($body),
-			'User-Agent: skydropx-opencart/' . self::EXTENSION_VERSION
+			'User-Agent: PLUGIN_SLUG-opencart/' . self::EXTENSION_VERSION
 		];
 
 		foreach ($headers as $name => $value) {

@@ -104,7 +104,7 @@ class Tracking extends \Opencart\System\Engine\Controller {
 			// Tracking events are not buyer-visible by default.
 			$this->model_checkout_order->addHistory($order_id, $status_id, $comment, false);
 		} catch (\Throwable $e) {
-			$this->log->write('Skydropx: order history for order ' . $order_id . ' failed after tracking update (' . get_class($e) . ').');
+			$this->log->write('PLUGIN_NAME: order history for order ' . $order_id . ' failed after tracking update (' . get_class($e) . ').');
 		}
 
 		$skydropx->json(200, ['updated' => true, 'order_status_id' => $skydropx->getOrderStatusId($order_id)]);
