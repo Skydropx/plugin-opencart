@@ -12,7 +12,7 @@ The **Skydropx OpenCart Extension** connects an OpenCart 4 store to **Skydropx**
 - **Fulfillment write-back**: Skydropx records each label (tracking number, carrier, URL and shipped quantities) and the order moves to the configured *Shipped* status once nothing is left to ship.
 - **Tracking updates**: tracking events are added to the order history, and the order moves to the configured *Delivered* status when every shipment is delivered.
 - **Order webhooks**: when an order history row is added (at checkout, by an admin, or by the extension), the order is POSTed to Skydropx with a signature.
-- **Live checkout rates**: a `Skydropx` shipping method asks Skydropx for rates. Skydropx switches it on and off remotely (CARRIER_SERVICE_V2).
+- **Live checkout rates**: a shipping method named after the brand asks Skydropx for rates. Skydropx switches it on and off remotely (CARRIER_SERVICE_V2).
 - **Admin page**: brand logo (when the brand has one), on/off switch, API key with copy and regenerate and a **Go to {brand}** button, origin address, status mapping, the build environment of the package, and a read-only view of what Skydropx configured.
 
 ## Installation
@@ -23,23 +23,23 @@ The **Skydropx OpenCart Extension** connects an OpenCart 4 store to **Skydropx**
    ```
    Answer the prompts: brand, version (semver, `v1.2.3` is accepted), environment (`local`, `sandbox` or `production`) and, for `local`, the ngrok URL. The package is written to:
    ```
-   builds/<slug>-v<version>-<environment>/skydropx.ocmod.zip
-   # e.g. builds/solo-envios-v1.0.0-production/skydropx.ocmod.zip
+   builds/<slug>-v<version>-<environment>/<code>.ocmod.zip
+   # e.g. builds/solo-envios-v1.0.0-production/solo_envios.ocmod.zip
    ```
-   **Do not rename the file.** OpenCart 4 takes the extension folder from the file name (`basename($filename, '.ocmod.zip')`), so a renamed zip (for example `skydropx (1).ocmod.zip`) installs into another folder and nothing works. Brand, version and environment go in the folder name, never in the file name.
+   The extension code (`<code>` below) is the brand slug with hyphens turned into underscores, because OpenCart rejects hyphens in extension codes: `skydropx`, `solo_envios`. It names the zip, the extension folder, the routes, the tables, the setting keys and the admin URL of that brand.
 
-   The extension code is `skydropx` for every brand. It is part of the contract with Skydropx (routes `extension/skydropx/…`, `X-Skydropx-*` headers, tables and setting keys), so a Solo Envíos store also downloads `skydropx.ocmod.zip`, and its admin URL and tables also say `skydropx`. Only what the merchant reads (name, texts, description, author, version, logo and URLs) changes per brand.
-2. **Upload it**: in the OpenCart admin, go to **Extensions > Installer**, upload `skydropx.ocmod.zip`, then click **Install** on the brand's row (*Skydropx*, *Solo Envíos*).
-3. **Install the module**: go to **Extensions > Extensions**, choose **Modules**, find the brand's module (for example **Skydropx**) and click **Install** (the green +). This step:
-   - creates the tables `oc_skydropx_shipment`, `oc_skydropx_shipment_item` and `oc_skydropx_tracking_event`,
+   **Do not rename the file.** OpenCart 4 takes the extension code from the file name (`basename($filename, '.ocmod.zip')`), so a renamed zip (for example `solo_envios (1).ocmod.zip`) installs into another folder and nothing works. Brand, version and environment go in the folder name, never in the file name.
+2. **Upload it**: in the OpenCart admin, go to **Extensions > Installer**, upload `<code>.ocmod.zip`, then click **Install** on the brand's row (*Skydropx*, *Solo Envíos*).
+3. **Install the module**: go to **Extensions > Extensions**, choose **Modules**, find the brand's module (**{brand}**) and click **Install** (the green +). This step:
+   - creates the tables `oc_<code>_shipment`, `oc_<code>_shipment_item` and `oc_<code>_tracking_event`,
    - generates the API key (`random_bytes(32)`, 64 hex characters),
-   - registers the order-history event,
-   - registers the `skydropx` shipping method, which stays disabled until Skydropx enables it.
+   - registers the order-history event (`<code>_order_history`) and, for brands other than Skydropx, the API alias event (`<code>_api_alias`, see [What it exposes](#what-it-exposes)),
+   - registers the `<code>` shipping method, which stays disabled until Skydropx enables it.
 4. **Configure it**: click **Edit** on the module.
 
-Uninstalling the module (Extensions > Modules > {brand} > Uninstall) removes the event, the shipping method, the settings and the three tables.
+Uninstalling the module (Extensions > Modules > {brand} > Uninstall) removes the events, the shipping method, the settings (`module_<code>_*`, `shipping_<code>_*`, `<code>_*`) and the three tables.
 
-**Upgrading to a new version loses the connection.** OpenCart 4 has no in-place update: to replace the files you must first uninstall the module (which drops the tables, the settings and the API key) and then uninstall the extension in **Extensions > Installer** (the Installer refuses to uninstall it while the module is installed, and refuses to install a package whose `extension/skydropx/` folder already exists). Installing the module again generates a new API key, which has to be pasted in Skydropx again.
+**Upgrading to a new version loses the connection.** OpenCart 4 has no in-place update: to replace the files you must first uninstall the module (which drops the tables, the settings and the API key) and then uninstall the extension in **Extensions > Installer** (the Installer refuses to uninstall it while the module is installed, and refuses to install a package whose `extension/<code>/` folder already exists). Installing the module again generates a new API key, which has to be pasted in Skydropx again.
 
 ## Configuration
 
@@ -58,11 +58,16 @@ The module header shows the brand logo when the package includes one (`admin/vie
 
 `paid` means the order status is in **Settings > Option > Processing Order Status** or **Complete Order Status**. `pending` means any other status that is not cancelled. Both come from the store settings; no status ids are hardcoded.
 
-The shipping method page (Extensions > Shipping > Skydropx) only sets the **sort order**.
+The shipping method page (Extensions > Shipping > {brand}) only sets the **sort order**.
 
 ## What it exposes
 
-Every endpoint is a catalog route, `{store}/index.php?route=extension/skydropx/api/<name>`. Each one is a controller `index()`, so the route separator never changes between versions. Every request must send the header `X-Skydropx-Api-Key: <key>`, which is compared with `hash_equals`. Responses are JSON. Amounts are in the store default currency, weights in kg, dimensions in cm, and dates in ISO 8601 UTC.
+Every endpoint is a catalog controller `index()` (so the route separator never changes between versions), reachable at two routes:
+
+- **Contract route**, `{store}/index.php?route=extension/skydropx/api/<name>`: the one the Skydropx backend calls for every brand. Like the literal `woocommerce_api_skydropx-*` endpoints of `plugin-woocommerce`, it does not change per brand. For brands other than Skydropx, the extension registers a `before` event on `catalog/controller/extension/skydropx/api/*` that rewrites the route to its own `extension/<code>/api/<name>`. It does nothing when the Skydropx extension itself is installed in the store (see [Known limits](#known-limits)).
+- **Own route**, `{store}/index.php?route=extension/<code>/api/<name>`: also works directly, so nothing has to change in the extension if the backend ever builds the route per brand.
+
+Every request must send the header `X-Skydropx-Api-Key: <key>`, which is compared with `hash_equals`. Responses are JSON. Amounts are in the store default currency, weights in kg, dimensions in cm, and dates in ISO 8601 UTC.
 
 | Method | Route | Purpose |
 |---|---|---|
@@ -87,7 +92,7 @@ Both outbound calls are signed with `X-Skydropx-Signature: hex(hmac_sha256(raw_b
 
 - **Checkout quote**: `getQuote()` POSTs `{address_from, address_to, items[{id, quantity, weight, width, height, length}], total_price}` to the quotation URL.
   - It has a 5 s timeout, and the response is cached in the session for 5 minutes for identical requests.
-  - Each returned rate is shown as `skydropx.<service_code>`.
+  - Each returned rate is shown as `<code>.<service_code>`.
   - On any error the method returns no rates, and checkout keeps working with the other shipping methods.
 - **Webhooks**: the extension listens on `catalog/model/checkout/order/addHistory/after` (4.0.2.x) or `catalog/model/checkout/order.addHistory/after` (4.1.x). Admin status changes go through the same catalog model, so they are caught too.
   - It POSTs `{"topic", "order"}` with `X-Skydropx-Topic: order.created` (first history row of the order) or `order.updated`.
@@ -96,7 +101,7 @@ Both outbound calls are signed with `X-Skydropx-Signature: hex(hmac_sha256(raw_b
 ## Development
 
 ```bash
-./build.sh                                   # interactive build -> builds/<slug>-v<version>-<environment>/skydropx.ocmod.zip
+./build.sh                                   # interactive build -> builds/<slug>-v<version>-<environment>/<code>.ocmod.zip
 composer install && vendor/bin/phpcs         # PHPCompatibility (8.0+) and hygiene rules on plugin-source/
 ```
 
@@ -133,12 +138,12 @@ Edit only `plugin-source/` and `branding/`. A brand is any folder in `branding/`
 | Key | Notes |
 |---|---|
 | `plugin_name` | Name the merchant sees (installer, admin, checkout rate name, logs). Must not contain `'`, `\` or `%`: it goes inside single-quoted PHP strings and is used as a `sprintf` format (`PLUGIN_NAME - %s`). |
-| `plugin_slug` | `^[a-z0-9]+(-[a-z0-9]+)*$`. Used in the output folder name and the User-Agent (`<slug>-opencart/<version>`). It is not the extension code. |
+| `plugin_slug` | `^[a-z0-9]+(-[a-z0-9]+)*$`. Used in the output folder name. The extension code is derived from it (`-` → `_`, `solo-envios` → `solo_envios`). |
 | `plugin_description`, `plugin_author`, `plugin_author_uri` | `install.json` `description`, `author` and `link`. |
 | `urls.<env>.ecommerce` | Shown in the read-only **Package** line. In `local` the value `NGROK_URL` is replaced by the ngrok URL entered at the prompt. |
 | `urls.<env>.app` | Base of the **Go to {brand}** button (`<app>/es-MX/merchant_stores`). |
 
-The keys are the same as in `plugin-woocommerce`, minus the ones OpenCart has no use for (`plugin_prefix`, `plugin_namespace`, `plugin_textdomain`, `plugin_uri`, `shipping_method_id`, `shipping_zone_name`). Every key above must be a non-empty string with no line breaks, and the URLs must start with `http://` or `https://` (except `NGROK_URL` in `local`). The build checks the config before copying anything and names the key and file that failed.
+The keys are the same as in `plugin-woocommerce`, minus the ones OpenCart has no use for (`plugin_prefix`, `plugin_textdomain`, `plugin_uri`, `shipping_method_id`, `shipping_zone_name`) and `plugin_namespace`, which the build derives from the code. Every key above must be a non-empty string with no line breaks, and the URLs must start with `http://` or `https://` (except `NGROK_URL` in `local`). The build checks the config before copying anything and names the key and file that failed.
 
 ### Build script (`build.sh`)
 
@@ -146,15 +151,16 @@ Requires `jq`, `rsync` and `zip`. `php` is optional: without it the build warns 
 
 The flow and prompts are the ones of `plugin-woocommerce/build.sh`: brand, version, environment, ngrok URL (only for `local`, `https://<name>.ngrok-free.app` or `https://<name>.ngrok.io`) and, at the end, "Open builds directory? (y/n)". Then it:
 
-1. Copies `plugin-source/` to `.tmp-build/` (without `.git`, `.gitignore`, `*.md`, `.DS_Store` and `tests`). A `trap` removes `.tmp-build/` on exit.
-2. Replaces the placeholders in `*.php` and `*.twig` with `sed`, and rewrites `install.json` with `jq`.
-3. Copies `branding/<brand>/assets/images/logo.png`, if it exists, to `admin/view/image/logo.png`.
-4. Runs `validate_build`:
-   - no placeholder token is left in any text file,
+1. Runs the white-label guard on `plugin-source/` (see [Placeholders](#placeholders)) and stops if it finds a forbidden `skydropx`.
+2. Copies `plugin-source/` to `.tmp-build/` (without `.git`, `.gitignore`, `*.md`, `.DS_Store` and `tests`). A `trap` removes `.tmp-build/` on exit.
+3. Replaces the placeholders in `*.php` and `*.twig` with `sed`, renames the files that have `PLUGIN_SLUG` in their name (`rename_template_files`, as in Woo), and rewrites `install.json` with `jq` (including `code`).
+4. Copies `branding/<brand>/assets/images/logo.png`, if it exists, to `admin/view/image/logo.png`.
+5. Runs `validate_build`:
+   - no placeholder token is left in any text file or file name,
    - `php -l` passes on every `.php` file (when `php` is installed),
-   - `install.json` is valid JSON, its `code` is `skydropx` and its `version` is the one entered,
+   - `install.json` is valid JSON, its `code` is the extension code and its `version` is the one entered,
    - `admin/` and `catalog/` exist.
-5. Removes the previous zip and writes `builds/<slug>-v<version>-<environment>/skydropx.ocmod.zip` with `install.json`, `admin/` and `catalog/` at the root, then prints a summary (brand, version, environment, ecommerce URL, path and size) and the reminder not to rename the file.
+6. Removes the previous zip and writes `builds/<slug>-v<version>-<environment>/<code>.ocmod.zip` with `install.json`, `admin/` and `catalog/` at the root, then prints a summary (brand, version, environment, ecommerce URL, path and size) and the reminder not to rename the file.
 
 If the config is invalid, a validation fails or stdin runs out at the brand, version, environment or ngrok prompt, the build exits with a non-zero status and writes no package (a zip left at the same path by an earlier successful build is not removed). Running out of input at "Open builds directory? (y/n)" counts as `n`: the package is already built and the script exits 0.
 
@@ -170,8 +176,9 @@ Placeholders in `plugin-source/` use the same names as in `plugin-woocommerce`:
 
 | Placeholder | Value | Used in |
 |---|---|---|
-| `PLUGIN_NAME` | `plugin_name` | Branded texts in the 6 language files (admin and catalog, `en-gb` and `es-mx`), checkout rate name (`text_rate_name` = `PLUGIN_NAME - %s`), `log->write` prefix, event description, default "Shipped with …" comment, `EXTENSION_DISABLED` message, `install.json` `name` |
-| `PLUGIN_SLUG` | `plugin_slug` | User-Agent `PLUGIN_SLUG-opencart/` + version |
+| `PLUGIN_NAMESPACE` | derived from the code as OpenCart does (`str_replace('_', '', ucwords($code, '_'))`): `Skydropx`, `SoloEnvios` | Namespaces (`Extension\PLUGIN_NAMESPACE\…`), class names (`class PLUGIN_NAMESPACE`) and `@package` |
+| `PLUGIN_NAME` | `plugin_name` | Branded texts in the 6 language files (admin and catalog, `en-gb` and `es-mx`), checkout rate name (`text_rate_name` = `PLUGIN_NAME - %s`), `log->write` prefix, event description, default "Shipped with …" comment, `EXTENSION_DISABLED` message, `install.json` `name`, and brand mentions in comments and docblocks |
+| `PLUGIN_SLUG` | extension code: `plugin_slug` with `-` → `_` (`skydropx`, `solo_envios`) | File names (`PLUGIN_SLUG.php`, `PLUGIN_SLUG.twig`), routes `extension/PLUGIN_SLUG/…`, `install.json` `code`, settings (`PLUGIN_SLUG_*`, `module_PLUGIN_SLUG_*`, `shipping_PLUGIN_SLUG_*`), tables `PLUGIN_SLUG_shipment*`, events (`PLUGIN_SLUG_order_history`, `PLUGIN_SLUG_api_alias`), rate code `PLUGIN_SLUG.<service>`, session key, `model_extension_PLUGIN_SLUG_*`, variables (`$PLUGIN_SLUG`), language keys (`text_PLUGIN_SLUG`), twig names and User-Agent `PLUGIN_SLUG-opencart/` + version |
 | `PLUGIN_DESCRIPTION` | `plugin_description` | `install.json` `description` |
 | `PLUGIN_AUTHOR` | `plugin_author` | `install.json` `author` |
 | `PLUGIN_AUTHOR_URI` | `plugin_author_uri` | `install.json` `link` |
@@ -182,10 +189,10 @@ Placeholders in `plugin-source/` use the same names as in `plugin-woocommerce`:
 
 Rules:
 
-- Replacement is case-sensitive and goes from the longest key to the shortest (`PLUGIN_AUTHOR_URI` before `PLUGIN_AUTHOR`).
-- A placeholder appears only where it must be replaced. No PHP identifier and no comment may be named like a placeholder or contain one: the constant is `APP_BASE`, not `APP_URL`.
-- `install.json` is written with `jq`, never with `sed`, so quotes or accents in the description cannot break the JSON. Its `code` stays `skydropx`.
-- Everything that forms the contract with Skydropx stays literal: the code `skydropx`, the routes `extension/skydropx/…`, the `Skydropx` namespaces and classes, the setting keys (`skydropx_*`, `module_skydropx_*`, `shipping_skydropx_*`), the tables, the `skydropx_order_history` event, the rate code `skydropx.<service>`, the `X-Skydropx-*` headers, plus variables, language keys and comments.
+- Replacement is case-sensitive and goes from the longest key to the shortest (`PLUGIN_AUTHOR_URI` before `PLUGIN_AUTHOR`, `PLUGIN_NAMESPACE` before `PLUGIN_NAME`).
+- Identifiers contain placeholders on purpose (`class PLUGIN_NAMESPACE`, `$PLUGIN_SLUG`), and the template is still valid PHP. Anything that must not be replaced must not look like a placeholder: the constant is `APP_BASE`, not `APP_URL`.
+- `install.json` is written with `jq`, never with `sed`, so quotes or accents in the description cannot break the JSON.
+- **White-label guard**: the only literal forms of `skydropx` (any case) allowed in `plugin-source/` are the `X-Skydropx-*` / `HTTP_X_SKYDROPX_*` headers (in code and API messages, never in language texts) and the `CONTRACT_CODE = 'skydropx'` constant that builds the alias route and trigger. `build.sh` greps `plugin-source/` for anything else, and also rejects file or directory names containing `skydropx` (they must use `PLUGIN_SLUG`), and stops the build if it finds either.
 
 To run phpcs without PHP on the host:
 
@@ -203,13 +210,14 @@ docker compose -f docker/docker-compose.yml up -d --build
 # store http://localhost:8091/   admin http://localhost:8091/admin/   MySQL localhost:3390 (root/opencart)
 ```
 
-The first boot runs the OpenCart CLI installer. The admin user is `admin`, with its password taken from `OC_ADMIN_PASSWORD` (default `admin`; change it). After that, install `builds/<slug>-v<version>-<environment>/skydropx.ocmod.zip` as described above. The container can reach a mock Skydropx server on the host through `host.docker.internal`.
+The first boot runs the OpenCart CLI installer. The admin user is `admin`, with its password taken from `OC_ADMIN_PASSWORD` (default `admin`; change it). After that, install `builds/<slug>-v<version>-<environment>/<code>.ocmod.zip` as described above. The container can reach a mock Skydropx server on the host through `host.docker.internal`.
 
 ## Known limits
 
 - **OpenCart 4.x only** (4.0.2.x and 4.1.x). OpenCart 3.0.x and 4.0.0.0–4.0.1.x are not supported.
 - **Weights and dimensions are current product values.** OpenCart does not store weight or size on order lines, so if a product is edited after the sale, the order's weights change too. Option weight deltas are not included in order lines; checkout quotes do include them, because the cart computes them. Lines for products that do not require shipping are left out.
 - **Non-MXN stores**: Skydropx rates are in MXN. If the store default currency is different, rates are converted with the store's own MXN exchange rate. If the store has no MXN currency, those rates are dropped. Order amounts are reported in the store default currency.
+- **One brand per store**: installing two brands (for example Skydropx and Solo Envíos) in the same OpenCart is not supported. When the Skydropx extension is present, the other brand's alias does nothing, so the contract route reaches only Skydropx.
 - **Multi-store**: settings live on the default store and there is one connection per installation.
   - API calls only see orders of the store whose URL was called.
   - Webhooks are sent only for the store that enabled them.
