@@ -1,17 +1,17 @@
 #!/bin/bash
 
 # Skydropx OpenCart extension builder
-# Produces dist/skydropx.ocmod.zip for Extensions > Installer (OpenCart 4.0.2.x / 4.1.x).
+# Produces builds/skydropx.ocmod.zip for Extensions > Installer (OpenCart 4.0.2.x / 4.1.x).
 
 set -euo pipefail
 
 readonly SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-readonly SOURCE_DIR="$SCRIPT_DIR/src"
-readonly DIST_DIR="$SCRIPT_DIR/dist"
+readonly SOURCE_DIR="$SCRIPT_DIR/plugin-source"
+readonly BUILD_DIR="$SCRIPT_DIR/builds"
 readonly TEMP_DIR="$SCRIPT_DIR/.tmp-build"
 # OpenCart 4 derives the extension folder from the file name: it must be <code>.ocmod.zip.
 readonly EXTENSION_CODE="skydropx"
-readonly ARCHIVE="$DIST_DIR/$EXTENSION_CODE.ocmod.zip"
+readonly ARCHIVE="$BUILD_DIR/$EXTENSION_CODE.ocmod.zip"
 
 readonly RED='\033[0;31m'
 readonly GREEN='\033[0;32m'
@@ -54,7 +54,7 @@ check_dependencies() {
 
 validate_source() {
     if [[ ! -f "$SOURCE_DIR/install.json" ]]; then
-        log "error" "src/install.json not found"
+        log "error" "plugin-source/install.json not found"
         exit 1
     fi
 
@@ -68,7 +68,7 @@ validate_source() {
 
     for dir in admin catalog; do
         if [[ ! -d "$SOURCE_DIR/$dir" ]]; then
-            log "error" "src/$dir is missing"
+            log "error" "plugin-source/$dir is missing"
             exit 1
         fi
     done
@@ -102,12 +102,12 @@ build() {
     log "info" "Building $EXTENSION_CODE $version"
 
     cleanup
-    mkdir -p "$TEMP_DIR" "$DIST_DIR"
+    mkdir -p "$TEMP_DIR" "$BUILD_DIR"
     cp -R "$SOURCE_DIR"/. "$TEMP_DIR"/
     find "$TEMP_DIR" -name '.DS_Store' -delete
 
     rm -f "$ARCHIVE"
-    # Zip the contents (install.json at the root), not the src folder itself.
+    # Zip the contents (install.json at the root), not the plugin-source folder itself.
     (cd "$TEMP_DIR" && zip -qrX "$ARCHIVE" install.json admin catalog)
 
     log "success" "Created ${ARCHIVE#"$SCRIPT_DIR"/} ($(du -h "$ARCHIVE" | cut -f1))"

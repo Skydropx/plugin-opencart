@@ -1,5 +1,6 @@
 .DS_Store
-/dist
+/builds/*
+!/builds/.gitkeep
 /vendor
 .phpcs-cache
 .tmp-build

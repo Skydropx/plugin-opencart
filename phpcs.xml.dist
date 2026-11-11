@@ -2,7 +2,7 @@
 <ruleset name="Skydropx OpenCart Extension">
   <description>PHPCS rules for the Skydropx OpenCart 4.x extension. Style follows OpenCart core (tabs, snake_case variables).</description>
 
-  <file>src</file>
+  <file>plugin-source</file>
 
   <arg name="extensions" value="php"/>
   <arg name="cache" value=".phpcs-cache"/>
@@ -36,7 +36,7 @@
   <rule ref="Generic.CodeAnalysis.UnconditionalIfStatement"/>
   <rule ref="Generic.CodeAnalysis.UnusedFunctionParameter">
     <!-- Event handlers must accept OpenCart's (&$route, &$args, &$output) signature. -->
-    <exclude-pattern>src/catalog/controller/event/*</exclude-pattern>
+    <exclude-pattern>plugin-source/catalog/controller/event/*</exclude-pattern>
   </rule>
   <rule ref="Squiz.PHP.NonExecutableCode"/>
   <rule ref="Squiz.WhiteSpace.SuperfluousWhitespace"/>
