@@ -8,6 +8,14 @@ namespace Opencart\Admin\Model\Extension\Skydropx\Module;
  * @package Opencart\Admin\Model\Extension\Skydropx\Module
  */
 class Skydropx extends \Opencart\System\Engine\Model {
+	/**
+	 * Build values: build.sh replaces these strings with the brand's app URL,
+	 * the ecommerce service URL and the environment of the package.
+	 */
+	public const APP_BASE = 'APP_URL';
+	public const ECOMMERCE_BASE = 'ECOMMERCE_URL';
+	public const BUILD_ENVIRONMENT = 'PLUGIN_ENVIRONMENT';
+
 	public function install(): void {
 		$this->db->query("CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "skydropx_shipment` (
 			`shipment_id` INT(11) NOT NULL AUTO_INCREMENT,
@@ -88,5 +96,18 @@ class Skydropx extends \Opencart\System\Engine\Model {
 
 	public function generateApiKey(): string {
 		return bin2hex(random_bytes(32));
+	}
+
+	/**
+	 * Values the package was built with.
+	 *
+	 * @return array{app_base: string, ecommerce_base: string, environment: string}
+	 */
+	public function getBuild(): array {
+		return [
+			'app_base'       => self::APP_BASE,
+			'ecommerce_base' => self::ECOMMERCE_BASE,
+			'environment'    => self::BUILD_ENVIRONMENT
+		];
 	}
 }

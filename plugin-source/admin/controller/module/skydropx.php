@@ -63,6 +63,14 @@ class Skydropx extends \Opencart\System\Engine\Controller {
 		$data['webhook_update_url'] = (string)($settings['skydropx_webhook_update_url'] ?? '');
 		$data['api_base_url'] = HTTP_CATALOG . 'index.php?route=extension/skydropx/api/';
 
+		// Brand logo (optional in the package), app link and build info.
+		$data['logo'] = is_file(DIR_EXTENSION . 'skydropx/admin/view/image/logo.png') ? HTTP_CATALOG . 'extension/skydropx/admin/view/image/logo.png' : '';
+
+		$build = $this->model_extension_skydropx_module_skydropx->getBuild();
+
+		$data['app_url'] = rtrim($build['app_base'], '/') . '/es-MX/merchant_stores';
+		$data['build_info'] = $build['environment'] . ' · ' . $build['ecommerce_base'];
+
 		$this->load->model('localisation/order_status');
 
 		$data['order_statuses'] = $this->model_localisation_order_status->getOrderStatuses();

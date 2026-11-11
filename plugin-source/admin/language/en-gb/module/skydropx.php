@@ -23,6 +23,7 @@ $_['text_api_key_help']         = 'Paste this key in PLUGIN_NAME when you connec
 $_['entry_status']              = 'Status';
 $_['entry_api_key']             = 'API key';
 $_['entry_api_base_url']        = 'API endpoint';
+$_['entry_build']               = 'Package';
 $_['entry_origin_name']         = 'Business name';
 $_['entry_origin_owner']        = 'Contact name';
 $_['entry_origin_email']        = 'E-mail';
@@ -50,6 +51,7 @@ $_['help_cancelled_statuses']   = 'Orders in these statuses are reported as canc
 // Button
 $_['button_regenerate']         = 'Regenerate key';
 $_['button_copy']               = 'Copy';
+$_['button_app']                = 'Go to PLUGIN_NAME';
 
 // Error
 $_['error_permission']          = 'Warning: You do not have permission to modify PLUGIN_NAME!';

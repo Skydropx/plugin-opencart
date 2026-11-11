@@ -23,6 +23,7 @@ $_['text_api_key_help']         = 'Pega esta clave en PLUGIN_NAME al conectar la
 $_['entry_status']              = 'Estado';
 $_['entry_api_key']             = 'Clave de API';
 $_['entry_api_base_url']        = 'Endpoint de la API';
+$_['entry_build']               = 'Instalable';
 $_['entry_origin_name']         = 'Nombre del negocio';
 $_['entry_origin_owner']        = 'Nombre de contacto';
 $_['entry_origin_email']        = 'Correo electrónico';
@@ -50,6 +51,7 @@ $_['help_cancelled_statuses']   = 'Los pedidos en estos estados se reportan como
 // Button
 $_['button_regenerate']         = 'Regenerar clave';
 $_['button_copy']               = 'Copiar';
+$_['button_app']                = 'Ir a PLUGIN_NAME';
 
 // Error
 $_['error_permission']          = 'Advertencia: no tienes permiso para modificar PLUGIN_NAME.';
