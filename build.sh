@@ -1,9 +1,12 @@
 #!/bin/bash
 
 # OpenCart Extension Builder
-# Asks for brand, version and environment, fills the plugin-source/ placeholders and writes
-# builds/<slug>-v<version>-<environment>/skydropx.ocmod.zip for Extensions > Installer
-# (OpenCart 4.0.2.x / 4.1.x). Answers can be piped: printf '1\n1.0.0\n2\nn\n' | ./build.sh
+# Asks for brand, version and environment, fills the plugin-source/ placeholders, renames the
+# PLUGIN_SLUG files and writes builds/<plugin_slug>-v<version>-<environment>/<code>.ocmod.zip
+# for Extensions > Installer (OpenCart 4.0.2.x / 4.1.x). The extension code is per brand:
+# plugin_slug with "-" -> "_" (skydropx, solo_envios), so solo-envios gives
+# builds/solo-envios-v1.0.0-production/solo_envios.ocmod.zip.
+# Answers can be piped: printf '1\n1.0.0\n2\nn\n' | ./build.sh
 
 set -euo pipefail
 
@@ -12,9 +15,6 @@ readonly SOURCE_DIR="$SCRIPT_DIR/plugin-source"
 readonly BRANDING_DIR="$SCRIPT_DIR/branding"
 readonly BUILD_DIR="$SCRIPT_DIR/builds"
 readonly TEMP_DIR="$SCRIPT_DIR/.tmp-build"
-# OpenCart 4 derives the extension folder from the file name: it must be <code>.ocmod.zip.
-# The code is the contract with the backend (routes, headers), so it is the same for every brand.
-readonly EXTENSION_CODE="skydropx"
 
 readonly RED='\033[0;31m'
 readonly GREEN='\033[0;32m'
@@ -142,6 +142,9 @@ validate_config() {
 }
 
 # Placeholder -> value map (the plugin-source/ placeholder contract, nothing else).
+# PLUGIN_SLUG is the OpenCart extension code (no hyphens allowed): plugin_slug with "-" -> "_".
+# PLUGIN_NAMESPACE is what OpenCart derives from the code for namespaces and class names:
+# str_replace('_', '', ucwords(code, '_')), e.g. solo_envios -> SoloEnvios.
 create_replacement_map() {
     local config_file="$1"
     local environment="$2"
@@ -152,9 +155,12 @@ create_replacement_map() {
         --arg environment "$environment" \
         --arg version "$version" \
         --arg ngrok_url "$ngrok_url" \
-        '{
+        '(.plugin_slug | gsub("-"; "_")) as $code
+        | {
             "PLUGIN_NAME": .plugin_name,
-            "PLUGIN_SLUG": .plugin_slug,
+            "PLUGIN_SLUG": $code,
+            "PLUGIN_NAMESPACE": ($code | split("_")
+                | map((.[0:1] | ascii_upcase) + .[1:]) | join("")),
             "PLUGIN_DESCRIPTION": .plugin_description,
             "PLUGIN_AUTHOR": .plugin_author,
             "PLUGIN_AUTHOR_URI": .plugin_author_uri,
@@ -192,6 +198,23 @@ apply_replacements() {
     rm -f "$sed_script"
 }
 
+# Replaces PLUGIN_SLUG in file and directory names (after the content replacements).
+# -depth lists a directory's contents before the directory itself, so renaming a directory
+# never breaks a path that is still to come. Only the basename is rewritten.
+rename_template_files() {
+    local replacement_map="$1"
+    local plugin_slug path base
+
+    plugin_slug=$(jq -r '.PLUGIN_SLUG' <<<"$replacement_map")
+
+    log "info" "Renaming template files..."
+
+    while IFS= read -r -d '' path; do
+        base="${path##*/}"
+        mv "$path" "${path%/*}/${base//PLUGIN_SLUG/$plugin_slug}"
+    done < <(find "$TEMP_DIR" -depth -name '*PLUGIN_SLUG*' -print0)
+}
+
 # install.json is rewritten with jq so quotes or accents in the values keep it valid JSON.
 update_install_json() {
     local replacement_map="$1"
@@ -204,6 +227,7 @@ update_install_json() {
 
     jq --argjson map "$replacement_map" '
         .name = $map.PLUGIN_NAME
+        | .code = $map.PLUGIN_SLUG
         | .description = $map.PLUGIN_DESCRIPTION
         | .version = $map.PLUGIN_VERSION
         | .author = $map.PLUGIN_AUTHOR
@@ -213,6 +237,43 @@ update_install_json() {
 }
 
 # === FILE OPERATIONS ===
+
+# White-label guard, run on plugin-source/ before anything is copied. The only skydropx
+# allowed is the eco contract: the X-Skydropx-* / HTTP_X_SKYDROPX_* headers and the
+# CONTRACT_CODE constant. Everything else must be a placeholder.
+validate_source() {
+    local failed=0
+    local required offenders
+
+    for required in install.json admin catalog; do
+        if [[ ! -e "$SOURCE_DIR/$required" ]]; then
+            log "error" "plugin-source/$required not found"
+            failed=1
+        fi
+    done
+
+    # grep -I skips binary files. Both greps exit 1 when nothing matches, which is the good case.
+    offenders=$(cd "$SOURCE_DIR" && grep -rniI skydropx . \
+        | grep -viE "X-Skydropx-|HTTP_X_SKYDROPX_|CONTRACT_CODE = 'skydropx'" || true)
+    if [[ -n "$offenders" ]]; then
+        log "error" "plugin-source must not mention skydropx outside the eco contract (file:line:text):"
+        echo "$offenders" >&2
+        failed=1
+    fi
+
+    offenders=$(cd "$SOURCE_DIR" && find . -iname '*skydropx*' -print)
+    if [[ -n "$offenders" ]]; then
+        log "error" "plugin-source must not mention skydropx in file names (use PLUGIN_SLUG):"
+        echo "$offenders" >&2
+        failed=1
+    fi
+
+    if [[ $failed -ne 0 ]]; then
+        exit 1
+    fi
+
+    log "success" "Source validated: no skydropx outside the eco contract"
+}
 
 copy_source_files() {
     log "info" "Copying source files..."
@@ -236,7 +297,7 @@ copy_brand_assets() {
 
     log "info" "Copying brand assets..."
 
-    # The admin module shows it from extension/skydropx/admin/view/image/logo.png.
+    # The admin module shows it from extension/<PLUGIN_SLUG>/admin/view/image/logo.png.
     mkdir -p "$TEMP_DIR/admin/view/image"
     cp "$logo" "$TEMP_DIR/admin/view/image/logo.png"
 }
@@ -252,6 +313,7 @@ process_brand() {
     log "info" "Processing template files..."
     apply_replacements "$replacement_map"
     update_install_json "$replacement_map"
+    rename_template_files "$replacement_map"
 
     copy_brand_assets "$brand"
 }
@@ -260,17 +322,26 @@ process_brand() {
 validate_build() {
     local replacement_map="$1"
     local failed=0
-    local version pattern leftovers code built_version file output dir
+    local version plugin_slug pattern leftovers code built_version file output dir
 
     log "info" "Validating build..."
 
     version=$(jq -r '.PLUGIN_VERSION' <<<"$replacement_map")
+    plugin_slug=$(jq -r '.PLUGIN_SLUG' <<<"$replacement_map")
     pattern=$(jq -r 'keys_unsorted | join("|")' <<<"$replacement_map")
 
     # grep -I skips binary files such as the logo.
     leftovers=$(cd "$TEMP_DIR" && grep -rIonE -- "$pattern" . || true)
     if [[ -n "$leftovers" ]]; then
         log "error" "Unreplaced placeholders (file:line:placeholder):"
+        echo "$leftovers" >&2
+        failed=1
+    fi
+
+    # File and directory names too: OpenCart loads files by name.
+    leftovers=$(cd "$TEMP_DIR" && find . -print | grep -E -- "$pattern" || true)
+    if [[ -n "$leftovers" ]]; then
+        log "error" "Unreplaced placeholders in file names:"
         echo "$leftovers" >&2
         failed=1
     fi
@@ -299,8 +370,8 @@ validate_build() {
         failed=1
     else
         code=$(jq -r '.code' "$TEMP_DIR/install.json")
-        if [[ "$code" != "$EXTENSION_CODE" ]]; then
-            log "error" "install.json code is '$code', expected '$EXTENSION_CODE'"
+        if [[ "$code" != "$plugin_slug" ]]; then
+            log "error" "install.json code is '$code', expected '$plugin_slug'"
             failed=1
         fi
 
@@ -328,16 +399,20 @@ validate_build() {
 
 create_package() {
     local replacement_map="$1"
-    local plugin_name plugin_slug version environment ecommerce_url
+    local config_file="$2"
+    local plugin_name plugin_slug extension_code version environment ecommerce_url
     plugin_name=$(jq -r '.PLUGIN_NAME' <<<"$replacement_map")
-    plugin_slug=$(jq -r '.PLUGIN_SLUG' <<<"$replacement_map")
+    # The folder keeps the config's hyphenated slug; the zip is named after the extension code.
+    plugin_slug=$(config_value "$config_file" plugin_slug)
+    extension_code=$(jq -r '.PLUGIN_SLUG' <<<"$replacement_map")
     version=$(jq -r '.PLUGIN_VERSION' <<<"$replacement_map")
     environment=$(jq -r '.PLUGIN_ENVIRONMENT' <<<"$replacement_map")
     ecommerce_url=$(jq -r '.ECOMMERCE_URL' <<<"$replacement_map")
 
-    # Version and environment go in the folder; the file name must stay <code>.ocmod.zip.
+    # OpenCart 4 derives the extension folder from the file name, so it must be <code>.ocmod.zip;
+    # version and environment go in the folder.
     local output_dir="$BUILD_DIR/${plugin_slug}-v${version}-${environment}"
-    local archive="$output_dir/$EXTENSION_CODE.ocmod.zip"
+    local archive="$output_dir/$extension_code.ocmod.zip"
 
     log "info" "Creating package: ${archive#"$SCRIPT_DIR"/}"
 
@@ -361,7 +436,7 @@ create_package() {
     echo "  Output: $archive"
     echo "  Size: $(du -h "$archive" | cut -f1)"
     echo
-    log "warning" "Do not rename $EXTENSION_CODE.ocmod.zip: OpenCart installs the extension under the zip's file name"
+    log "warning" "Do not rename $extension_code.ocmod.zip: OpenCart installs the extension under the zip's file name"
     echo
 }
 
@@ -511,6 +586,7 @@ main() {
     echo
 
     validate_config "$config_file" "$environment"
+    validate_source
     echo
 
     local ngrok_url=""
@@ -532,7 +608,7 @@ main() {
     copy_source_files
     process_brand "$selected_brand" "$replacement_map"
     validate_build "$replacement_map"
-    create_package "$replacement_map"
+    create_package "$replacement_map" "$config_file"
 
     # Ask to open builds directory. EOF here means "n": the package is already built.
     local open_builds=""
