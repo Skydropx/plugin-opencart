@@ -1,0 +1,190 @@
+<?php
+namespace Opencart\Catalog\Controller\Extension\PLUGIN_NAMESPACE\Api;
+/**
+ * Class Fulfillment
+ *
+ * POST index.php?route=extension/PLUGIN_SLUG/api/fulfillment
+ * Body: {"order_id":42,"tracking_number":"123","carrier":"DHL","tracking_url":"https://...",
+ *        "items":[{"order_product_id":7,"quantity":2}],"notify":true}
+ *
+ * Idempotent on (order_id, tracking_number). Quantities are clamped to what is
+ * left on each line; with nothing left the tracking is still recorded (no items).
+ *
+ * @package Opencart\Catalog\Controller\Extension\PLUGIN_NAMESPACE\Api
+ */
+class Fulfillment extends \Opencart\System\Engine\Controller {
+	public function index(): void {
+		$this->load->model('extension/PLUGIN_SLUG/module/PLUGIN_SLUG');
+
+		$PLUGIN_SLUG = $this->model_extension_PLUGIN_SLUG_module_PLUGIN_SLUG;
+
+		if (!$PLUGIN_SLUG->authorize()) {
+			return;
+		}
+
+		$body = $PLUGIN_SLUG->readJsonBody();
+
+		if ($body === null) {
+			$PLUGIN_SLUG->error(422, 'VALIDATION_ERROR', 'The request body must be a JSON object.');
+
+			return;
+		}
+
+		$order_id = $PLUGIN_SLUG->parseId($body['order_id'] ?? null);
+		$tracking_number = is_scalar($body['tracking_number'] ?? null) ? trim((string)$body['tracking_number']) : '';
+		$carrier = is_scalar($body['carrier'] ?? null) ? trim((string)$body['carrier']) : '';
+		$tracking_url = is_scalar($body['tracking_url'] ?? null) ? trim((string)$body['tracking_url']) : '';
+		$notify = array_key_exists('notify', $body) ? $PLUGIN_SLUG->parseBool($body['notify']) : false;
+		$items = $body['items'] ?? [];
+
+		$errors = [];
+
+		if ($order_id === null) {
+			$errors[] = 'order_id must be a positive integer';
+		}
+
+		if ($tracking_number === '' || mb_strlen($tracking_number) > 128) {
+			$errors[] = 'tracking_number is required (max 128 characters)';
+		}
+
+		if (mb_strlen($carrier) > 64) {
+			$errors[] = 'carrier must be at most 64 characters';
+		}
+
+		if ($tracking_url !== '' && (strlen($tracking_url) > 512 || !$PLUGIN_SLUG->isValidUrl($tracking_url))) {
+			$errors[] = 'tracking_url must be an http(s) URL (max 512 characters)';
+		}
+
+		if ($notify === null) {
+			$errors[] = 'notify must be a boolean';
+		}
+
+		if ($items !== null && !is_array($items)) {
+			$errors[] = 'items must be an array';
+		}
+
+		$requested = [];
+
+		if (!$errors && $items) {
+			foreach ($items as $item) {
+				$order_product_id = is_array($item) ? $PLUGIN_SLUG->parseId($item['order_product_id'] ?? null) : null;
+				$quantity = is_array($item) ? $PLUGIN_SLUG->parseId($item['quantity'] ?? null) : null;
+
+				if ($order_product_id === null || $quantity === null) {
+					$errors[] = 'each item needs a positive order_product_id and quantity';
+
+					break;
+				}
+
+				$requested[$order_product_id] = ($requested[$order_product_id] ?? 0) + $quantity;
+			}
+		}
+
+		if ($errors) {
+			$PLUGIN_SLUG->error(422, 'VALIDATION_ERROR', implode('; ', $errors) . '.');
+
+			return;
+		}
+
+		$store_id = (int)$this->config->get('config_store_id');
+
+		if (!$PLUGIN_SLUG->getOrderRow($order_id, $store_id)) {
+			$PLUGIN_SLUG->error(404, 'ORDER_NOT_FOUND', 'Order not found.');
+
+			return;
+		}
+
+		$existing = $PLUGIN_SLUG->getShipment($order_id, $tracking_number);
+
+		if ($existing) {
+			$this->replay($order_id, (int)$existing['shipment_id'], $tracking_number);
+
+			return;
+		}
+
+		$lines = $PLUGIN_SLUG->getShippableLines($order_id);
+
+		// items empty/omitted = every remaining quantity.
+		$to_ship = [];
+
+		if (!$requested) {
+			foreach ($lines as $order_product_id => $line) {
+				if ($line['quantity_to_ship'] > 0) {
+					$to_ship[$order_product_id] = $line['quantity_to_ship'];
+				}
+			}
+		} else {
+			foreach ($requested as $order_product_id => $quantity) {
+				if (!isset($lines[$order_product_id])) {
+					$PLUGIN_SLUG->error(422, 'VALIDATION_ERROR', 'order_product_id ' . $order_product_id . ' is not a shippable line of this order.');
+
+					return;
+				}
+
+				// Clamped to what is left on the line (a retried or reprinted label never over-ships).
+				$quantity = min($quantity, $lines[$order_product_id]['quantity_to_ship']);
+
+				if ($quantity > 0) {
+					$to_ship[$order_product_id] = $quantity;
+				}
+			}
+		}
+
+		$shipment_id = $PLUGIN_SLUG->addShipment($order_id, $tracking_number, $carrier, $tracking_url);
+
+		if (!$shipment_id) {
+			// A concurrent retry created it first.
+			$existing = $PLUGIN_SLUG->getShipment($order_id, $tracking_number);
+
+			$this->replay($order_id, (int)($existing['shipment_id'] ?? 0), $tracking_number);
+
+			return;
+		}
+
+		foreach ($to_ship as $order_product_id => $quantity) {
+			$PLUGIN_SLUG->addShipmentItem($shipment_id, $order_id, $order_product_id, $quantity);
+		}
+
+		$remaining = 0;
+
+		foreach ($lines as $order_product_id => $line) {
+			$remaining += $line['quantity_to_ship'] - ($to_ship[$order_product_id] ?? 0);
+		}
+
+		// Shipped status only when this shipment ships the last units. A shipment with no
+		// items (nothing was left: second label / reprint) keeps the current status.
+		$current_status_id = $PLUGIN_SLUG->getOrderStatusId($order_id);
+		$status_id = ($to_ship && $remaining <= 0) ? $PLUGIN_SLUG->getShippedStatusId() : $current_status_id;
+
+		$comment = trim('Shipped with ' . ($carrier !== '' ? $carrier : 'PLUGIN_NAME') . '. Tracking: ' . $tracking_number . ' ' . $tracking_url);
+
+		try {
+			$this->load->model('checkout/order');
+
+			$this->model_checkout_order->addHistory($order_id, $status_id, $comment, (bool)$notify);
+		} catch (\Throwable $e) {
+			// The shipment is stored; a failing side effect (e.g. mail transport) must not lose it.
+			$this->log->write('PLUGIN_NAME: order history for order ' . $order_id . ' failed after fulfillment (' . get_class($e) . ').');
+		}
+
+		$PLUGIN_SLUG->json(201, [
+			'created'         => true,
+			'order_id'        => $order_id,
+			'shipment_id'     => $shipment_id,
+			'tracking_number' => $tracking_number,
+			'order_status_id' => $PLUGIN_SLUG->getOrderStatusId($order_id)
+		]);
+	}
+
+	private function replay(int $order_id, int $shipment_id, string $tracking_number): void {
+		$PLUGIN_SLUG = $this->model_extension_PLUGIN_SLUG_module_PLUGIN_SLUG;
+
+		$PLUGIN_SLUG->json(200, [
+			'created'         => false,
+			'order_id'        => $order_id,
+			'shipment_id'     => $shipment_id,
+			'tracking_number' => $tracking_number,
+			'order_status_id' => $PLUGIN_SLUG->getOrderStatusId($order_id)
+		]);
+	}
+}

@@ -1,0 +1,8 @@
+{
+  "name": "PLUGIN_NAME",
+  "code": "PLUGIN_SLUG",
+  "description": "PLUGIN_DESCRIPTION",
+  "version": "PLUGIN_VERSION",
+  "author": "PLUGIN_AUTHOR",
+  "link": "PLUGIN_AUTHOR_URI"
+}

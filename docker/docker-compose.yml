@@ -1,0 +1,47 @@
+# Local OpenCart 4.1.0.4 store for testing the Skydropx extension.
+#
+#   docker --context default compose -f docker/docker-compose.yml up -d --build
+#
+# Store:  http://localhost:8091/          Admin: http://localhost:8091/admin/
+# MySQL:  localhost:3390 (root / opencart)
+name: opencart-e2e
+
+services:
+  opencart:
+    build:
+      context: .
+      args:
+        OPENCART_VERSION: "4.1.0.4"
+    ports:
+      - "127.0.0.1:8091:80"
+    environment:
+      DB_HOSTNAME: mysql
+      DB_DATABASE: opencart
+      DB_PASSWORD: opencart
+      OC_HTTP_SERVER: http://localhost:8091/
+      OC_ADMIN_USER: admin
+      OC_ADMIN_PASSWORD: ${OC_ADMIN_PASSWORD:-admin}
+      OC_ADMIN_EMAIL: admin@example.com
+    extra_hosts:
+      # Lets the store reach a mock Skydropx server running on the host.
+      - "host.docker.internal:host-gateway"
+    volumes:
+      # Seeded from the image on first start; keeps install.lock, config and extensions with the DB.
+      - opencart_html:/var/www/html
+    depends_on:
+      - mysql
+
+  mysql:
+    image: mysql:8.0
+    command: --default-authentication-plugin=mysql_native_password
+    ports:
+      - "127.0.0.1:3390:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: opencart
+      MYSQL_DATABASE: opencart
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+volumes:
+  mysql_data:
+  opencart_html:
