@@ -522,11 +522,11 @@ get_ngrok_url() {
             log "error" "No input left while reading the Ngrok URL"
             return 1
         fi
-        if [[ "$ngrok_url" =~ ^https://[a-zA-Z0-9-]+\.(ngrok\.io|ngrok-free\.app)$ ]]; then
-            echo "$ngrok_url"
+        if [[ "$ngrok_url" =~ ^https://[a-zA-Z0-9-]+\.(ngrok\.io|ngrok(-free)?\.(app|dev))/?$ ]]; then
+            echo "${ngrok_url%/}"
             return 0
         fi
-        log "error" "Invalid Ngrok URL format. Use format: https://example.ngrok-free.app or https://example.ngrok.io"
+        log "error" "Invalid Ngrok URL format. Use format: https://example.ngrok-free.dev, https://example.ngrok-free.app or https://example.ngrok.io"
     done
 }
 
