@@ -17,7 +17,19 @@ The **Skydropx OpenCart Extension** connects an OpenCart 4 store to **Skydropx**
 
 ## Installation
 
-1. **Build the package** (or download a release):
+### Before you start
+
+Check these first. Otherwise the connection fails, or the store connects but does not work:
+
+- **HTTPS, reachable from the internet.** {brand} always calls the store at `https://<store>/index.php?route=extension/skydropx/api/...`, with the API key in a header. A store on plain HTTP, with an invalid or self-signed certificate, or not reachable from the internet (localhost, an intranet) cannot be connected, and the error reads as if the extension were not installed.
+- **The country currency as the store default** (MXN, COP or BRL). A new OpenCart has USD as the default and none of these currencies: add it in **System > Localisation > Currencies** and choose it in **System > Settings > edit the store > Local > Currency**. Order amounts are sent in the default currency with no conversion, and checkout rates in a currency the store does not have are dropped (see [Known limits](#known-limits)).
+- **Maintenance mode off** (**System > Settings > edit the store > Server > Maintenance Mode**). While it is on, OpenCart answers every extension route with its maintenance page: the connection fails, and order sync, fulfillment and tracking fail as if the extension were not installed.
+- **Weight and dimensions on every product that ships** (**Catalog > Products > edit > Data**: *Dimensions (L x W x H)* and *Weight*). Missing values are sent as 0, so {brand} cannot quote or label those products correctly.
+- **Permissions for other admin groups.** Installing the module gives *access* and *modify* on `extension/<code>/module/<code>` only to the user group of the admin who installs it. Add them to other groups in **System > Users > User Groups**: *access* shows the {brand} menu entry and the module page, *modify* lets the user save and connect.
+
+### Steps
+
+1. **Build the package**:
    ```bash
    ./build.sh
    ```
@@ -35,12 +47,15 @@ The **Skydropx OpenCart Extension** connects an OpenCart 4 store to **Skydropx**
    - generates the API key (`random_bytes(32)`, 64 hex characters),
    - registers the order-history event (`<code>_order_history`) and, for brands other than Skydropx, the API alias event (`<code>_api_alias`, see [What it exposes](#what-it-exposes)),
    - registers the admin menu event (`<code>_menu`, on `admin/view/common/column_left/before`), which adds a **{brand}** entry to the left menu, right after **Extensions**, that opens the module page. Only users whose group has *access* permission on `extension/<code>/module/<code>` see it,
-   - registers the `<code>` shipping method, which stays disabled until Skydropx enables it.
+   - registers the `<code>` shipping method, which stays disabled until checkout rates are turned on (step 6),
    - fills the origin address with what **Settings > Store** already has (store name, owner, e-mail, telephone, country and region) and leaves the extension enabled.
-4. **Complete the origin address**: click **{brand}** in the left menu (or **Edit** on the module), add street, postcode and city, and save. Until street, postcode and country are filled in, the page shows a warning above the connect button.
-5. **Connect**: click **Connect to {brand}**. A new tab opens the ecommerce service of the build's environment (`GET {ecommerce}/install/opencart?client_id=<code>&client_secret=<api key>&scope=read_write&domain=<store>`, the WooCommerce plugin flow). The service checks the key against `api/store` and creates the shop, then the merchant signs in to {brand} (or is already signed in) and the store is linked; no key is copied by hand. `domain` is the catalog URL (`HTTP_CATALOG`) without scheme or trailing slash, lowercased, keeping the port and the subdirectory (`https://Example.com/shop/` → `example.com/shop`). The {brand} account must have the `opencart` flag on, or the connection ends on the error page. Back on the module page, a reload shows that {brand} has reached the store (with **Go to {brand}** and **Connect again**) once the order webhooks are on. That is not proof of the link: the ecommerce service turns the webhooks on while it creates the shop, before the merchant signs in, and keeps them on when labels-light then refuses the link (for example with the `opencart` flag off). The store is linked when it shows in {brand} > My stores.
+4. **Complete the origin address**: click **{brand}** in the left menu (or **Edit** on the module), fill in **Address** (street and number), **Address line 2** (colonia in Mexico, barrio in Colombia, bairro in Brazil), city and postcode, and save. Until address, postcode and country are filled in, the page shows a warning above the connect button. {brand} reads the customers' *Address 2* at checkout the same way.
+5. **Connect**: click **Connect to {brand}**. A new tab opens the ecommerce service of the build's environment (`GET {ecommerce}/install/opencart?client_id=<code>&client_secret=<api key>&scope=read_write&domain=<store>`, the WooCommerce plugin flow). The service checks the key against `api/store` and creates the shop, then hands the admin over to {brand} and the store is linked; no key is copied by hand. `domain` is the catalog URL (`HTTP_CATALOG`) without scheme or trailing slash, lowercased, keeping the port and the subdirectory (`https://Example.com/shop/` → `example.com/shop`). The {brand} account must have the `opencart` flag on, or the connection ends on the error page. Back on the module page, a reload shows that {brand} has reached the store (with **Go to {brand}** and **Connect again**) once the order webhooks are on. That is not proof of the link: the ecommerce service turns the webhooks on while it creates the shop, before the merchant signs in, and keeps them on when labels-light then refuses the link (for example with the `opencart` flag off). The store is linked when it shows in {brand} > My stores.
+
+   **Sign in to {brand} first**, in the same browser. Without a {brand} session the flow asks you to sign in, but after signing in {brand} opens its home page instead of returning to the connection, so the store is not linked: click **Connect to {brand}** again once you are signed in.
 
    The API key is still under **Manual connection** for the manual flow: paste it, together with the store URL, in {brand} > My stores > OpenCart.
+6. **Turn on checkout rates** (optional): in {brand} > My stores, open the store's settings, click **Start** on **Dynamic rates in cart**, choose how shipments are quoted and click **Activate**. {brand} then turns on the `<code>` shipping method and sends it the quotation URL, and the module page shows *Checkout rates* on. Available in Mexico (every brand) and Brazil (Pronto Envíos only); Colombian stores have no checkout rates.
 
 Uninstalling the module (Extensions > Modules > {brand} > Uninstall) removes the events, the shipping method, the settings (`module_<code>_*`, `shipping_<code>_*`, `<code>_*`) and the three tables.
 
@@ -53,7 +68,7 @@ Uninstalling the module (Extensions > Modules > {brand} > Uninstall) removes the
 | Status | Turns the extension off. While it is off, every endpoint answers `403 EXTENSION_DISABLED`, checkout shows no Skydropx rates and no webhooks are sent. |
 | Connect to {brand} | Opens the connect flow in a new tab (see [Installation](#installation), step 5). Once the order webhooks are on it reads **Connect again**, next to **Go to {brand}**. Requires the *modify* permission on the extension. |
 | API key | Under **Manual connection**. Paste this key in Skydropx only when you connect the store by hand. **Regenerate key** replaces it immediately, so you must update it in Skydropx afterwards. The **Go to {brand}** button next to it opens `<app URL>/es-MX/merchant_stores` of the build's environment in a new tab (for example `https://sb-pro.skydropx.com/es-MX/merchant_stores` in a Skydropx sandbox build). |
-| Origin address | Business name, contact, e-mail, phone, address, city, postcode, country and state. Skydropx uses it for quotes and labels. It is empty until you fill it in. |
+| Origin address | Business name, contact, e-mail, phone, address, address line 2, city, postcode, country and state. Skydropx uses it for quotes and labels. Installing the module prefills name, contact, e-mail, phone, country and state from **Settings > Store**; address, address line 2, city and postcode stay empty until you fill them in. |
 | Shipped status | Default *Shipped* (3). Applied when a label ships the last pending units. |
 | Delivered status | Default *Complete* (5). Applied when every shipment of the order is delivered. |
 | Cancelled statuses | Default 7, 8, 10, 11, 13, 14, 16. Orders in these statuses report `payment_status: cancelled` and are never listed. |
@@ -222,7 +237,7 @@ The first boot runs the OpenCart CLI installer. The admin user is `admin`, with 
 
 - **OpenCart 4.x only** (4.0.2.x and 4.1.x). OpenCart 3.0.x and 4.0.0.0–4.0.1.x are not supported.
 - **Weights and dimensions are current product values.** OpenCart does not store weight or size on order lines, so if a product is edited after the sale, the order's weights change too. Option weight deltas are not included in order lines; checkout quotes do include them, because the cart computes them. Lines for products that do not require shipping are left out.
-- **Non-MXN stores**: Skydropx rates are in MXN. If the store default currency is different, rates are converted with the store's own MXN exchange rate. If the store has no MXN currency, those rates are dropped. Order amounts are reported in the store default currency.
+- **Store currency**: order amounts are reported in the store default currency with no conversion, so it must be the country currency (MXN, COP or BRL). Each checkout rate comes in the currency {brand} sends with it (MXN when it sends none); when that differs from the store default, it is converted with the store's own exchange rate, and it is dropped when the store does not have that currency.
 - **One brand per store**: installing two brands (for example Skydropx and Solo Envíos) in the same OpenCart is not supported. When the Skydropx extension is present, the other brand's alias does nothing, so the contract route reaches only Skydropx.
 - **Multi-store**: settings live on the default store and there is one connection per installation.
   - API calls only see orders of the store whose URL was called.
