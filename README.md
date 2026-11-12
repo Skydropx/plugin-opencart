@@ -35,18 +35,23 @@ The **Skydropx OpenCart Extension** connects an OpenCart 4 store to **Skydropx**
    - generates the API key (`random_bytes(32)`, 64 hex characters),
    - registers the order-history event (`<code>_order_history`) and, for brands other than Skydropx, the API alias event (`<code>_api_alias`, see [What it exposes](#what-it-exposes)),
    - registers the `<code>` shipping method, which stays disabled until Skydropx enables it.
-4. **Configure it**: click **Edit** on the module.
+   - fills the origin address with what **Settings > Store** already has (store name, owner, e-mail, telephone, country and region) and leaves the extension enabled.
+4. **Complete the origin address**: click **Edit** on the module, add street, postcode and city, and save. Until street, postcode and country are filled in, the page shows a warning above the connect button.
+5. **Connect**: click **Connect to {brand}**. A new tab opens the ecommerce service of the build's environment (`GET {ecommerce}/install/opencart?client_id=<code>&client_secret=<api key>&scope=read_write&domain=<store>`, the WooCommerce plugin flow). The service checks the key against `api/store` and creates the shop, then the merchant signs in to {brand} (or is already signed in) and the store is linked; no key is copied by hand. `domain` is the catalog URL (`HTTP_CATALOG`) without scheme or trailing slash, lowercased, keeping the port and the subdirectory (`https://Example.com/shop/` → `example.com/shop`). The {brand} account must have the `opencart` flag on, or the connection ends on the error page. Back on the module page, a reload shows that {brand} has reached the store (with **Go to {brand}** and **Connect again**) once the order webhooks are on. That is not proof of the link: the ecommerce service turns the webhooks on while it creates the shop, before the merchant signs in, and keeps them on when labels-light then refuses the link (for example with the `opencart` flag off). The store is linked when it shows in {brand} > My stores.
+
+   The API key is still under **Manual connection** for the manual flow: paste it, together with the store URL, in {brand} > My stores > OpenCart.
 
 Uninstalling the module (Extensions > Modules > {brand} > Uninstall) removes the events, the shipping method, the settings (`module_<code>_*`, `shipping_<code>_*`, `<code>_*`) and the three tables.
 
-**Upgrading to a new version loses the connection.** OpenCart 4 has no in-place update: to replace the files you must first uninstall the module (which drops the tables, the settings and the API key) and then uninstall the extension in **Extensions > Installer** (the Installer refuses to uninstall it while the module is installed, and refuses to install a package whose `extension/<code>/` folder already exists). Installing the module again generates a new API key, which has to be pasted in Skydropx again.
+**Upgrading to a new version loses the connection.** OpenCart 4 has no in-place update: to replace the files you must first uninstall the module (which drops the tables, the settings and the API key) and then uninstall the extension in **Extensions > Installer** (the Installer refuses to uninstall it while the module is installed, and refuses to install a package whose `extension/<code>/` folder already exists). Installing the module again generates a new API key, so the store has to be connected again (with **Connect again** or by hand).
 
 ## Configuration
 
 | Setting | Notes |
 |---|---|
 | Status | Turns the extension off. While it is off, every endpoint answers `403 EXTENSION_DISABLED`, checkout shows no Skydropx rates and no webhooks are sent. |
-| API key | Paste this key in Skydropx when you connect the store. **Regenerate key** replaces it immediately, so you must update it in Skydropx afterwards. The **Go to {brand}** button next to it opens `<app URL>/es-MX/merchant_stores` of the build's environment in a new tab (for example `https://sb-pro.skydropx.com/es-MX/merchant_stores` in a Skydropx sandbox build). |
+| Connect to {brand} | Opens the connect flow in a new tab (see [Installation](#installation), step 5). Once the order webhooks are on it reads **Connect again**, next to **Go to {brand}**. Requires the *modify* permission on the extension. |
+| API key | Under **Manual connection**. Paste this key in Skydropx only when you connect the store by hand. **Regenerate key** replaces it immediately, so you must update it in Skydropx afterwards. The **Go to {brand}** button next to it opens `<app URL>/es-MX/merchant_stores` of the build's environment in a new tab (for example `https://sb-pro.skydropx.com/es-MX/merchant_stores` in a Skydropx sandbox build). |
 | Origin address | Business name, contact, e-mail, phone, address, city, postcode, country and state. Skydropx uses it for quotes and labels. It is empty until you fill it in. |
 | Shipped status | Default *Shipped* (3). Applied when a label ships the last pending units. |
 | Delivered status | Default *Complete* (5). Applied when every shipment of the order is delivered. |
