@@ -4,13 +4,14 @@ namespace Opencart\Admin\Controller\Extension\PLUGIN_NAMESPACE\Module;
  * Class PLUGIN_NAMESPACE
  *
  * Settings page, API key management and install/uninstall of the PLUGIN_NAME
- * extension (tables, order event and the `PLUGIN_SLUG` shipping method).
+ * extension (tables, events, admin menu entry and the `PLUGIN_SLUG` shipping method).
  *
  * @package Opencart\Admin\Controller\Extension\PLUGIN_NAMESPACE\Module
  */
 class PLUGIN_NAMESPACE extends \Opencart\System\Engine\Controller {
 	private const EVENT_CODE = 'PLUGIN_SLUG_order_history';
 	private const ALIAS_EVENT_CODE = 'PLUGIN_SLUG_api_alias';
+	private const MENU_EVENT_CODE = 'PLUGIN_SLUG_menu';
 
 	// Extension code the ecommerce service calls (`extension/<code>/api/...`).
 	private const CONTRACT_CODE = 'skydropx';
@@ -269,6 +270,18 @@ class PLUGIN_NAMESPACE extends \Opencart\System\Engine\Controller {
 			]);
 		}
 
+		// Admin menu entry that opens this page.
+		$this->model_setting_event->deleteEventByCode(self::MENU_EVENT_CODE);
+
+		$this->model_setting_event->addEvent([
+			'code'        => self::MENU_EVENT_CODE,
+			'description' => 'PLUGIN_NAME: adds a menu entry that opens the extension settings.',
+			'trigger'     => 'admin/view/common/column_left/before',
+			'action'      => 'extension/PLUGIN_SLUG/event/menu.add',
+			'status'      => 1,
+			'sort_order'  => 0
+		]);
+
 		// Register the `PLUGIN_SLUG` shipping method (disabled until PLUGIN_NAME turns quotes on).
 		$this->load->model('setting/extension');
 
@@ -297,6 +310,7 @@ class PLUGIN_NAMESPACE extends \Opencart\System\Engine\Controller {
 
 		$this->model_setting_event->deleteEventByCode(self::EVENT_CODE);
 		$this->model_setting_event->deleteEventByCode(self::ALIAS_EVENT_CODE);
+		$this->model_setting_event->deleteEventByCode(self::MENU_EVENT_CODE);
 
 		$this->load->model('setting/extension');
 

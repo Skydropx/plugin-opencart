@@ -37,6 +37,7 @@
   <rule ref="Generic.CodeAnalysis.UnusedFunctionParameter">
     <!-- Event handlers must accept OpenCart's (&$route, &$args, &$output) signature. -->
     <exclude-pattern>plugin-source/catalog/controller/event/*</exclude-pattern>
+    <exclude-pattern>plugin-source/admin/controller/event/*</exclude-pattern>
   </rule>
   <rule ref="Squiz.PHP.NonExecutableCode"/>
   <rule ref="Squiz.WhiteSpace.SuperfluousWhitespace"/>
