@@ -99,6 +99,36 @@ class PLUGIN_NAMESPACE extends \Opencart\System\Engine\Model {
 	}
 
 	/**
+	 * Install URL of the ecommerce service (WooCommerce plugin flow): the service validates the
+	 * key against `api/store`, creates the shop and hands the admin over to PLUGIN_NAME to sign in
+	 * and finish, so nothing has to be copied by hand.
+	 */
+	public function getConnectUrl(string $api_key, string $store_url): string {
+		return rtrim(self::ECOMMERCE_BASE, '/') . '/install/opencart?' . http_build_query([
+			'client_id'     => 'PLUGIN_SLUG',
+			'client_secret' => $api_key,
+			'scope'         => 'read_write',
+			'domain'        => $this->getStoreDomain($store_url)
+		]);
+	}
+
+	/**
+	 * Store home as the ecommerce service keys the shop: no scheme, no trailing slash, the
+	 * subdirectory kept (`https://Example.com/shop/` -> `example.com/shop`).
+	 */
+	public function getStoreDomain(string $store_url): string {
+		$parts = parse_url($store_url) ?: [];
+
+		$domain = strtolower((string)($parts['host'] ?? ''));
+
+		if (isset($parts['port'])) {
+			$domain .= ':' . $parts['port'];
+		}
+
+		return $domain . rtrim((string)($parts['path'] ?? ''), '/');
+	}
+
+	/**
 	 * Values the package was built with.
 	 *
 	 * @return array{app_base: string, ecommerce_base: string, environment: string}

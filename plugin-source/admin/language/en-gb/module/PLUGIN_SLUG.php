@@ -17,7 +17,13 @@ $_['text_enabled']              = 'Enabled';
 $_['text_disabled']             = 'Disabled';
 $_['text_select']               = ' --- Please Select --- ';
 $_['text_none']                 = ' --- None --- ';
-$_['text_api_key_help']         = 'Paste this key in PLUGIN_NAME when you connect the store.';
+$_['text_api_key_help']         = 'Only to connect by hand: paste this key and your store URL in PLUGIN_NAME.';
+$_['text_connect_title']        = 'Connect your store to PLUGIN_NAME';
+$_['text_connect_help']         = 'We take you to PLUGIN_NAME to sign in and the store is connected. There is no key to copy.';
+$_['text_connect_return']       = 'When you finish in PLUGIN_NAME, reload this page.';
+$_['text_contacted']            = 'PLUGIN_NAME has already reached this store. Check that it shows in My stores in PLUGIN_NAME; if it does not, connect it again.';
+$_['text_origin_incomplete']    = 'Before connecting, fill in and save the origin address (street, postcode and country): PLUGIN_NAME uses it for quotes and labels.';
+$_['text_manual']               = 'Manual connection';
 
 // Entry
 $_['entry_status']              = 'Status';
@@ -52,6 +58,8 @@ $_['help_cancelled_statuses']   = 'Orders in these statuses are reported as canc
 $_['button_regenerate']         = 'Regenerate key';
 $_['button_copy']               = 'Copy';
 $_['button_app']                = 'Go to PLUGIN_NAME';
+$_['button_connect']            = 'Connect to PLUGIN_NAME';
+$_['button_reconnect']          = 'Connect again';
 
 // Error
 $_['error_permission']          = 'Warning: You do not have permission to modify PLUGIN_NAME!';

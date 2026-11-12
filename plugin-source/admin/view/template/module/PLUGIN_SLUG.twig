@@ -20,6 +20,26 @@
         <form id="form-module" action="{{ save }}" method="post" data-oc-toggle="ajax">
           <fieldset>
             <legend>{{ text_connection }}</legend>
+            {% if error_warning %}
+              <div class="alert alert-danger"><i class="fa-solid fa-circle-exclamation"></i> {{ error_warning }}</div>
+            {% endif %}
+            <div id="PLUGIN_SLUG-connect" class="row mb-3">
+              <div class="col-sm-10 offset-sm-2">
+                {% if contacted %}
+                  <div class="alert alert-info"><i class="fa-solid fa-circle-info"></i> {{ text_contacted }}</div>
+                  <a href="{{ app_url|e }}" target="_blank" rel="noopener noreferrer" class="btn btn-primary"><i class="fa-solid fa-arrow-up-right-from-square"></i> {{ button_app }}</a>
+                  <a href="{{ connect|e }}" target="_blank" rel="noopener noreferrer" class="btn btn-light"><i class="fa-solid fa-plug"></i> {{ button_reconnect }}</a>
+                {% else %}
+                  <h5>{{ text_connect_title }}</h5>
+                  <p class="form-text">{{ text_connect_help }}</p>
+                  {% if origin_incomplete %}
+                    <div class="alert alert-warning"><i class="fa-solid fa-triangle-exclamation"></i> {{ text_origin_incomplete }}</div>
+                  {% endif %}
+                  <a href="{{ connect|e }}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-lg"><i class="fa-solid fa-plug"></i> {{ button_connect }}</a>
+                  <div class="form-text">{{ text_connect_return }}</div>
+                {% endif %}
+              </div>
+            </div>
             <div class="row mb-3">
               <label class="col-sm-2 col-form-label">{{ entry_status }}</label>
               <div class="col-sm-10">
@@ -29,6 +49,8 @@
                 </div>
               </div>
             </div>
+            <details class="mb-3">
+            <summary class="mb-3">{{ text_manual }}</summary>
             <div class="row mb-3">
               <label for="input-api-key" class="col-sm-2 col-form-label">{{ entry_api_key }}</label>
               <div class="col-sm-10">
@@ -47,6 +69,7 @@
                 <input type="text" value="{{ api_base_url|e }}" id="input-api-base-url" class="form-control" readonly/>
               </div>
             </div>
+            </details>
             <div class="row mb-3">
               <label for="input-build" class="col-sm-2 col-form-label">{{ entry_build }}</label>
               <div class="col-sm-10">

@@ -36,6 +36,7 @@ class PLUGIN_NAMESPACE extends \Opencart\System\Engine\Controller {
 
 		$data['save'] = $this->url->link('extension/PLUGIN_SLUG/module/PLUGIN_SLUG.save', $token);
 		$data['regenerate'] = $this->url->link('extension/PLUGIN_SLUG/module/PLUGIN_SLUG.regenerate', $token, true);
+		$data['connect'] = $this->url->link('extension/PLUGIN_SLUG/module/PLUGIN_SLUG.connect', $token, true);
 		$data['zone_url'] = $this->url->link('localisation/country.country', $token, true);
 		$data['back'] = $this->url->link('marketplace/extension', $token . '&type=module');
 
@@ -66,6 +67,17 @@ class PLUGIN_NAMESPACE extends \Opencart\System\Engine\Controller {
 		$data['webhook_url'] = (string)($settings['PLUGIN_SLUG_webhook_url'] ?? '');
 		$data['webhook_update_url'] = (string)($settings['PLUGIN_SLUG_webhook_update_url'] ?? '');
 		$data['api_base_url'] = HTTP_CATALOG . 'index.php?route=extension/PLUGIN_SLUG/api/';
+
+		// PLUGIN_NAME turns the order webhooks on while it creates the shop, before the merchant signs in
+		// and links it (and also when the link is then refused), so this only says that the service
+		// reached the store, never that the store is linked.
+		$data['contacted'] = $data['webhooks_status'];
+		$data['origin_incomplete'] = $data['origin_address'] === '' || $data['origin_postcode'] === '' || !$data['origin_country_id'];
+
+		// Left by connect() when the user cannot modify the extension.
+		$data['error_warning'] = (string)($this->session->data['error_warning'] ?? '');
+
+		unset($this->session->data['error_warning']);
 
 		// Brand logo (optional in the package), app link and build info.
 		$data['logo'] = is_file(DIR_EXTENSION . 'PLUGIN_SLUG/admin/view/image/logo.png') ? HTTP_CATALOG . 'extension/PLUGIN_SLUG/admin/view/image/logo.png' : '';
@@ -147,6 +159,28 @@ class PLUGIN_NAMESPACE extends \Opencart\System\Engine\Controller {
 	}
 
 	/**
+	 * Connect button: sends the admin to the ecommerce service with the API key and the store
+	 * URL, so the merchant never copies the key by hand (WooCommerce plugin flow).
+	 */
+	public function connect(): void {
+		$this->load->language('extension/PLUGIN_SLUG/module/PLUGIN_SLUG');
+
+		if (!$this->user->hasPermission('modify', 'extension/PLUGIN_SLUG/module/PLUGIN_SLUG')) {
+			$this->session->data['error_warning'] = $this->language->get('error_permission');
+
+			$this->response->redirect($this->url->link('extension/PLUGIN_SLUG/module/PLUGIN_SLUG', 'user_token=' . $this->session->data['user_token'], true));
+
+			return;
+		}
+
+		$this->load->model('extension/PLUGIN_SLUG/module/PLUGIN_SLUG');
+
+		$settings = $this->model_extension_PLUGIN_SLUG_module_PLUGIN_SLUG->getSettings('PLUGIN_SLUG');
+
+		$this->response->redirect($this->model_extension_PLUGIN_SLUG_module_PLUGIN_SLUG->getConnectUrl((string)($settings['PLUGIN_SLUG_api_key'] ?? ''), HTTP_CATALOG));
+	}
+
+	/**
 	 * Replaces the API key. PLUGIN_NAME must be updated with the new key.
 	 */
 	public function regenerate(): void {
@@ -193,7 +227,15 @@ class PLUGIN_NAMESPACE extends \Opencart\System\Engine\Controller {
 			'PLUGIN_SLUG_shipped_status_id'    => (string)self::DEFAULT_SHIPPED_STATUS_ID,
 			'PLUGIN_SLUG_delivered_status_id'  => (string)self::DEFAULT_DELIVERED_STATUS_ID,
 			'PLUGIN_SLUG_cancelled_status_ids' => self::DEFAULT_CANCELLED_STATUS_IDS,
-			'PLUGIN_SLUG_webhooks_status'      => '0'
+			'PLUGIN_SLUG_webhooks_status'      => '0',
+			// Origin address starts from the store settings (Settings > Store), so the merchant
+			// only adds what OpenCart does not keep there: street, city and postcode.
+			'PLUGIN_SLUG_origin_name'          => mb_substr((string)$this->config->get('config_name'), 0, 255),
+			'PLUGIN_SLUG_origin_owner'         => mb_substr((string)$this->config->get('config_owner'), 0, 255),
+			'PLUGIN_SLUG_origin_email'         => mb_substr((string)$this->config->get('config_email'), 0, 255),
+			'PLUGIN_SLUG_origin_telephone'     => mb_substr((string)$this->config->get('config_telephone'), 0, 255),
+			'PLUGIN_SLUG_origin_country_id'    => (string)(int)$this->config->get('config_country_id'),
+			'PLUGIN_SLUG_origin_zone_id'       => (string)(int)$this->config->get('config_zone_id')
 		];
 
 		$this->model_extension_PLUGIN_SLUG_module_PLUGIN_SLUG->editValues('PLUGIN_SLUG', array_diff_key($defaults, $settings));

@@ -17,7 +17,13 @@ $_['text_enabled']              = 'Activado';
 $_['text_disabled']             = 'Desactivado';
 $_['text_select']               = ' --- Selecciona --- ';
 $_['text_none']                 = ' --- Ninguno --- ';
-$_['text_api_key_help']         = 'Pega esta clave en PLUGIN_NAME al conectar la tienda.';
+$_['text_api_key_help']         = 'Solo para conectar a mano: pega esta clave y la URL de tu tienda en PLUGIN_NAME.';
+$_['text_connect_title']        = 'Conecta tu tienda con PLUGIN_NAME';
+$_['text_connect_help']         = 'Te llevamos a PLUGIN_NAME para iniciar sesión y la tienda queda conectada. No necesitas copiar ninguna clave.';
+$_['text_connect_return']       = 'Cuando termines en PLUGIN_NAME, recarga esta página.';
+$_['text_contacted']            = 'PLUGIN_NAME ya se comunicó con esta tienda. Revisa que aparezca en Mis tiendas de PLUGIN_NAME; si no está, vuelve a conectarla.';
+$_['text_origin_incomplete']    = 'Antes de conectar, completa y guarda la dirección de origen (calle, código postal y país): PLUGIN_NAME la usa para cotizar y generar guías.';
+$_['text_manual']               = 'Conexión manual';
 
 // Entry
 $_['entry_status']              = 'Estado';
@@ -52,6 +58,8 @@ $_['help_cancelled_statuses']   = 'Los pedidos en estos estados se reportan como
 $_['button_regenerate']         = 'Regenerar clave';
 $_['button_copy']               = 'Copiar';
 $_['button_app']                = 'Ir a PLUGIN_NAME';
+$_['button_connect']            = 'Conectar con PLUGIN_NAME';
+$_['button_reconnect']          = 'Volver a conectar';
 
 // Error
 $_['error_permission']          = 'Advertencia: no tienes permiso para modificar PLUGIN_NAME.';
